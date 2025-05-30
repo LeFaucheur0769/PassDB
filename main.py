@@ -32,8 +32,8 @@ def firstTime (config):
     
 def tui(config):
     printLogo()
-    print("1)  Add a combolist")
-    print("2)  Search a combolist")
+    print("01)  Add a combolist")
+    print("02)  Search a combolist")
     print("99) Exit")
     print("\n")
     choice = str(input("  PassDB> "))
@@ -42,6 +42,9 @@ def tui(config):
         sorter.sorter(config)
     elif (choice == "2"):
         searcher.searcher(config)
+    elif (choice == "99"):
+        print("Goodbye")
+        exit()
     print("Done")
 
 def printLogo():
