@@ -56,7 +56,7 @@ def hasher(filename, importPath, config):
     file_path = os.path.join(importPath, filename)
     
     # Open the file and read its contents
-    with open(file_path, encoding='utf-8') as file2open:
+    with open(file_path, encoding="utf-8", errors="ignore") as file2open:
         contents = file2open.read()
         # Calculate the MD5 hash of the file contents
         file_hash = hashlib.md5(contents.encode()).hexdigest()
@@ -68,7 +68,7 @@ def hasher(filename, importPath, config):
 
     try:
         # Open the "hash_db.txt" file and read its contents
-        with open(hash_db_path, encoding='utf-8') as hash_db:
+        with open(hash_db_path, encoding="utf-8", errors="ignore") as hash_db:
             # Check if the hash already exists in the database
             if file_hash in hash_db.read():
                 # Print a message saying that the file was already added to the database
@@ -77,13 +77,13 @@ def hasher(filename, importPath, config):
             else:
                 # Add the hash to the "hash_db.txt" file
                 print("Adding file to database")
-                with open(hash_db_path, "a", encoding='utf-8') as hash_db_append:
+                with open(hash_db_path, "a", encoding="utf-8", errors="ignore") as hash_db_append:
                     hash_db_append.write(file_hash + "\n")
                 return False
     except FileNotFoundError:
         # If the "hash_db.txt" file does not exist, create it and add the hash
         print("Creating hash database")
-        with open(hash_db_path, "w", encoding='utf-8') as hash_db_new:
+        with open(hash_db_path, "w", encoding="utf-8", errors="ignore") as hash_db_new:
             hash_db_new.write(file_hash + "\n")
         return False
 
@@ -114,7 +114,7 @@ def firstalpha2file(importPath):
         # Check if the file is a text file
         if file.endswith(".txt"):
             # Open the file and read its contents
-            with open(os.path.join(importPath, "import") + "/" + file) as f:
+            with open(os.path.join(importPath, "import", encoding="utf-8", errors="ignore") + "/" + file) as f:
                 # Add the passwords from the file to the list
                 password.extend([line.strip() for line in f if line.strip()])
 
@@ -128,7 +128,7 @@ def firstalpha2file(importPath):
             # Check if the first character of the password matches the current character
             if str(line[0]) == char:
                 # Append the password to the corresponding file
-                with open(os.join(importPath + "/output/sorted/") + char + ".txt", "a", encoding='utf-8') as output:
+                with open(os.join(importPath + "/output/sorted/") + char + ".txt", "a", encoding="utf-8", errors="ignore") as output:
                     output.write(line + "\n")
 
 def alpha2fileOptimized (file, importPath, config):
@@ -174,7 +174,7 @@ def alpha2fileOptimized (file, importPath, config):
 
     try:
         # Open the input file for reading
-        with open(input_path, "r", encoding="utf-8") as f:
+        with open(input_path, "r", encoding="utf-8", errors="ignore") as f:
             # Iterate over each line in the file
             for line in f:
                 # Strip the line of whitespace
@@ -195,7 +195,7 @@ def alpha2fileOptimized (file, importPath, config):
         # Iterate over the buckets and write the lines to the appropriate output file
         for key, lines in buckets.items():
             output_file = os.path.join(output_dir, f"{key}.txt")
-            with open(output_file, "a", encoding="utf-8") as out:
+            with open(output_file, "a", encoding="utf-8", errors="ignore") as out:
                 out.write("\n".join(lines) + "\n")
 
     except Exception as e:

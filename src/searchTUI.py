@@ -26,7 +26,7 @@ def searchMenu(config):
     if choice == "1":
         SaveOutput(config)
     if choice == "2":
-        searcher.searcher(config)
+        searcher.searcher(config, None)
     if choice == "99":
         tui.tui(config)
         
