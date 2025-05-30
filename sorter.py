@@ -9,16 +9,28 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 # List of all possible characters
 alphaNum = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 
-def check_dir():
+# def check_dir(config):
+#     script_dir = os.path.dirname(os.path.realpath(__file__))
+
+#     if not os.path.exists(script_dir + "/output"):
+#         os.makedirs(script_dir + "/output")
+#     if not os.path.exists(script_dir + "/output/sorted"):
+#         os.makedirs(script_dir + "/output/sorted")
+#     if not os.path.exists(script_dir + "/import"):
+#         os.makedirs(script_dir + "/import")
+
+#     return
+
+def check_dir(config):
     script_dir = os.path.dirname(os.path.realpath(__file__))
 
-    if not os.path.exists(script_dir + "/output"):
-        os.makedirs(script_dir + "/output")
-    if not os.path.exists(script_dir + "/output/sorted"):
-        os.makedirs(script_dir + "/output/sorted")
-    if not os.path.exists(script_dir + "/import"):
-        os.makedirs(script_dir + "/import")
-
+    if not os.path.exists(config.get("db_location")):
+        os.makedirs(config.get("db_location"))
+    if not os.path.exists(config.get("db_location") + "/sorted"):
+        os.makedirs(config.get("db_location") + "/sorted")
+    if not os.path.exists(config.get("import_location")):
+        os.makedirs(config.get("import_location"))
+        
     return
 
 
