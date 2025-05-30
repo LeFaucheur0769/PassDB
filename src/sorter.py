@@ -1,6 +1,8 @@
 import hashlib
 import os
-import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import logging
+import time
 
 # Global variables
 # Get the directory of the current script
@@ -129,119 +131,122 @@ def firstalpha2file(importPath):
                 with open(os.join(importPath + "/output/sorted/") + char + ".txt", "a", encoding='utf-8') as output:
                     output.write(line + "\n")
 
-
-def alpha2file(file, importPath, config):
+def alpha2fileOptimized (file, importPath, config):
     """
-    This function reads all text files in the "import" directory, sorts the passwords
-    in each file alphabetically, and appends the sorted passwords to the "output.txt"
-    file in the "output" directory.
+    Processes a text file by reading its lines and categorizing them based on the
+    first three alphanumeric characters. Each group of lines is then written to a
+    separate output file named after the prefix in a specified directory.
+
+    The function only processes files with a '.txt' extension. It ignores lines
+    that are empty and prefixes that are not alphanumeric. In case of an error
+    during processing, it logs the error to the console. Debug information is
+    provided if the config dictionary contains a truthy 'debug' key.
 
     Args:
-        file (str): The name of the file to sort
-        importPath (str): The path to the import folder
+        file (str): The name of the text file to process.
+        importPath (str): The directory path where the text file is located.
+        config (dict): A configuration dictionary that includes paths and
+                       debugging options.
 
     Returns:
         None
     """
-    print("Sorting files...")
 
+    from collections import defaultdict
 
-    # Create an empty list to store the passwords
-    password = []
+    if not file.endswith(".txt"):
+        return
 
-    # Iterate over all files in the "import" directory
+    # Print the name of the file being processed
+    print(f"Sorting file: {file}")
+
+    # Construct the path to the input file
+    input_path = os.path.join(importPath, file)
+
+    # Construct the path to the output directory
+    output_dir = os.path.join(config.get("db_location", ""), "sorted")
+
+    # Create the output directory if it doesn't exist
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Initialize a dictionary to store the categorized lines
+    buckets = defaultdict(list)
+
     try:
-        # Check if the file is a text file
-        if file.endswith(".txt"):
-            # Open the file and read its contents
-            with open(os.path.join(importPath, file), encoding='utf-8') as f:
-                # Add the passwords from the file to the list
-                password.extend([line.strip() for line in f if line.strip()])
-    except Exception as error:
-        print("An Error occured")
-        if config.get("debug") == True :
-            print(error)
+        # Open the input file for reading
+        with open(input_path, "r", encoding="utf-8") as f:
+            # Iterate over each line in the file
+            for line in f:
+                # Strip the line of whitespace
+                line = line.strip()
 
-    # Sort the passwords alphabetically
-    password.sort()
+                # Ignore empty lines
+                if not line:
+                    continue
 
-    # New sorting to file
-    for line in password :
-        for char1 in alphaNum :
-            if str(line[0]) == char1 :
-                for char2 in alphaNum :
-                    if str(line[1]) == char2 :
-                        for char3 in alphaNum :
-                            if str(line[2]) == char3 :
-                                open(os.path.join("output", "sorted") + "\\" + char1 + char2 + char3 + ".txt", "a", encoding="utf-8").write(line + "\n")
-                                pass
+                # Extract the first three alphanumeric characters
+                key = line[:3].lower() if len(line) >= 3 else line.lower()
 
+                # Ignore lines with non-alphanumeric prefixes
+                if key.isalnum():
+                    # Add the line to the appropriate bucket
+                    buckets[key].append(line)
 
+        # Iterate over the buckets and write the lines to the appropriate output file
+        for key, lines in buckets.items():
+            output_file = os.path.join(output_dir, f"{key}.txt")
+            with open(output_file, "a", encoding="utf-8") as out:
+                out.write("\n".join(lines) + "\n")
 
-# Enlever la dernière ligne si elle est vide avant d'écrire dans le fichier
+    except Exception as e:
+        # Print an error message if there is a problem
+        print(f"\033[91m[ERROR] Failed to process {file}\033[0m")
 
-def test():
-    """
-    Prints the names of all text files in the "import" directory.
-
-    This function can be used to test the sorter.py script by printing the names of all
-    text files in the "import" directory. This can be useful for debugging purposes.
-
-    Args: None
-
-    Returns: None
-    """
-    dir = os.path.dirname(os.path.realpath(__file__))
-    for filename in os.listdir(dir + "/import/"):
-        if filename.endswith(".txt"):
-            print(filename)
-
-def old_file_output(script_dir, password, importPath):
-        # Open the "output.txt" file in the "output" directory and append the sorted passwords
-    with open(script_dir + "/output/output.txt", "a", encoding='utf-8') as output:
-        # Write each password to a new line in the file
-        for line in password:
-            output.write(line + "\n")
-
-
-
-
-
-
-
-
+        # Print debug information if the 'debug' key is set
+        if config.get("debug"):
+            print(f"  ↳ {e}")
 
 
 
 def sorter(config):
     """
-    This function checks if the file was already added to the database
-    by calling the hasher() function. If the file was already added, it
-    prints a message saying that the file was already added to the database.
-    If the file was not already added, it calls the alpha2file() function
-    to sort the file and add it to the database.
-
-    Args: None
-
-    Returns: None
+    Checks if each file has already been added to the database via hasher().
+    If not, uses ThreadPoolExecutor to sort them concurrently with alpha2fileOptimized().
     """
     check_dir(config)
     importPath = config.get("import_location")
-    # filename = "hash_db.txt"
-    # print(importPath)
-    # print(os.path.join(importPath, filename))
-    for eachfiles in os.listdir(config.get("import_location")):
-        # Check if the file was already added to the database
-        print("Checking if",eachfiles, "'s hash was already added to the database...")
-        if hasher(eachfiles, importPath, config) == True: # the file was already added to the database
-            # Print a message saying that the file was already added to the database
-            print("\033[91mThe file was already added to the database\033[0m")
-        else: 
-            # Sort the file and add it to the database
-            print("\033[92mSorting ",eachfiles," and adding it to the database\033[0m")
-            alpha2file(eachfiles, importPath, config)
+    files = os.listdir(importPath)
 
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        futures = {}
+
+        for eachfile in files:
+            print(f"Checking if {eachfile}'s hash was already added to the database...")
+
+            if hasher(eachfile, importPath, config) is True:
+                print("\033[91mThe file was already added to the database\033[0m")
+            else:
+                print(f"\033[92mSorting {eachfile} and adding it to the database\033[0m")
+                # Submit the sorting task to the thread pool
+                futures[executor.submit(alpha2fileOptimized, eachfile, importPath, config)] = eachfile
+
+        # Optionally wait for all threads to complete and handle exceptions
+        for future in as_completed(futures):
+            file = futures[future]
+            try:
+                future.result()  # This re-raises exceptions from the thread, if any
+                print(f"✅ Done sorting {file}")
+            except Exception as e:
+                print(f"\033[91m❌ Error sorting {file}: {e}\033[0m")
     """
     This is a test function. It is commented out because it is not being used.
     """    
     # test()
+
+
+
+# if __name__ == "__main__":
+#     import yaml
+#     with open("passdb.yml", "r") as f:
+#         sorter(config=yaml.safe_load(f))
+#         f.close()
