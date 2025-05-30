@@ -1,5 +1,6 @@
 import hashlib
 import os
+import threading
 
 # Global variables
 # Get the directory of the current script
