@@ -12,7 +12,7 @@ def main():
         time.sleep(0.5)
         print("\033[2J")
         config = yaml.safe_load(f)
-        if (os.path.exists("output/sorted") == False):
+        if (os.path.exists("output") == False):
             firstTime(config)
         else: 
             pass
