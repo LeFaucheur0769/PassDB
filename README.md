@@ -1,41 +1,63 @@
 # PassDB
 
-## Installation
+##  Description
 
-### Download the repository
+**PassDB** is a Python tool designed to efficiently sort combolists and provide fast, easy retrieval of `email:password` combinations. It's ideal for parsing and managing credential dumps with minimal effort.
+
+---
+
+##  Installation
+
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/LeFaucheur0769/PassDB.git
 cd PassDB
 ```
 
-### Enable the python environnement 
+### 2. Set up the Python environment
 
 ```bash
 python -m venv .venv
-.venv\Scripts\activate    
+# On Windows:
+.venv\Scripts\activate
+# On Unix/macOS:
+source .venv/bin/activate
 ```
 
-### Install the dependencies
+### 3. Install dependencies
 
 ```bash
-python -m pip install -r requirements.txt
+pip install -r requirements.txt
 ```
 
+---
 
-## Run PassDB for the first time
+##  Getting Started
 
-If it is the first time you are running PassDB. It will automaticly create the necessary folders and files
-You can specify the location of the folders and files in the [config file](#config)
+On the first run, PassDB will automatically create the necessary folders and files.
+You can customize these paths and behaviors in the [configuration file](#gear-config).
 
-## Usage
+---
 
-## Config
+##  Usage
 
-PassDB is customizable. You can edit it in the config file **passdb.yml**
-- **db_location** : the location where the combolists are exported
-- **create_db_in_toolFolder** : If the folders will be created in the tool's folder. If set to false, PassDB will ask a location on first boot
-- **import_location** : the location from which the combolists are imported
-- **export_results_location** : the location where the output are exported
-- **print_result_export_file** : if set to true, PassDB will print the results even I you choose to export the output
-- **quiet** : set to true to only print the results and disable the interactivity (useful if used in a script)
+> *Usage instructions coming soon...*
+
+---
+
+## ⚙ Config
+
+PassDB is highly configurable via the `passdb.yml` file located in the project directory.
+
+| Option                     | Description                                                                                                                         |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `db_location`              | Path where processed combolists (databases) will be stored                                                                          |
+| `create_db_in_toolFolder`  | If `true`, PassDB stores databases inside the tool’s directory. If `false`, you will be prompted for a custom location on first run |
+| `import_location`          | Path from which raw combolists are imported                                                                                         |
+| `export_results_location`  | Directory where search results or exports are saved                                                                                 |
+| `print_result_export_file` | If `true`, results will be printed to the terminal even if they're being exported                                                   |
+| `quiet`                    | If `true`, disables interactivity and only prints results (useful for scripting)                                                    |
+
+---
+
