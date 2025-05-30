@@ -4,3 +4,4 @@ create_db_in_toolFolder: true
 import_location: "import/"
 export_results_location: "export/"
 print_result_export_file : false 
+quiet : false
