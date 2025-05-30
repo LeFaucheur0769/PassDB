@@ -10,17 +10,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 # List of all possible characters
 alphaNum = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 
-# def check_dir(config):
-#     script_dir = os.path.dirname(os.path.realpath(__file__))
 
-#     if not os.path.exists(script_dir + "/output"):
-#         os.makedirs(script_dir + "/output")
-#     if not os.path.exists(script_dir + "/output/sorted"):
-#         os.makedirs(script_dir + "/output/sorted")
-#     if not os.path.exists(script_dir + "/import"):
-#         os.makedirs(script_dir + "/import")
-
-#     return
 
 def check_dir(config):
     """
@@ -33,7 +23,6 @@ def check_dir(config):
     Returns:
         None
     """
-    # script_dir = os.path.dirname(os.path.realpath(__file__))
 
     if not os.path.exists(config.get("db_location")):
         os.makedirs(config.get("db_location"))
@@ -44,7 +33,6 @@ def check_dir(config):
     if not os.path.exists(config.get("db_location") + "/hash_db.txt"):
         open(config.get("db_location") + "/hash_db.txt" , "w").close
         
-    return
 
 
 def hasher(filename, importPath, config):
