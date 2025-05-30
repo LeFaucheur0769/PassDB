@@ -1,4 +1,5 @@
 import os
+import src.tui as tui
 
 def searcher(config, outputFile):
     """
@@ -19,7 +20,9 @@ def searcher(config, outputFile):
     """
     if config.get("debug") == True: print("outputFile insinde searcher : ", outputFile)
     if config.get("debug") == True: print("outputFile type : ", type(outputFile))
+    tui.printLogo()
     email = str(input("Enter your email to search: "))
+    tui.printLogo()
     print("Starting search...")
     print("Exporting to: ", os.path.join(str(config.get("export_results_location")) , str(outputFile)))
     for filename in os.listdir(config.get("db_location") + "/sorted"):
