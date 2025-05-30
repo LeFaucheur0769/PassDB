@@ -4,8 +4,6 @@
 
 **PassDB** is a Python tool designed to efficiently sort combolists and provide fast, easy retrieval of `email:password` combinations. It's ideal for parsing and managing credential dumps with minimal effort.
 
----
-
 ##  Installation
 
 ### 1. Clone the repository
@@ -31,20 +29,15 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
----
 
 ##  Getting Started
 
 On the first run, PassDB will automatically create the necessary folders and files.
 You can customize these paths and behaviors in the [configuration file](#gear-config).
 
----
-
 ##  Usage
 
 > *Usage instructions coming soon...*
-
----
 
 ## ⚙ Config
 
@@ -59,5 +52,5 @@ PassDB is highly configurable via the `passdb.yml` file located in the project d
 | `print_result_export_file` | If `true`, results will be printed to the terminal even if they're being exported                                                   |
 | `quiet`                    | If `true`, disables interactivity and only prints results (useful for scripting)                                                    |
 
----
+
 
