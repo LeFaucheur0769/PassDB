@@ -2,11 +2,23 @@ import os
 import yaml
 import time
 
-import sorter
-import searcher
+import src.sorter as sorter
+import src.searcher as searcher
+from src.searchTUI import searchMenu
+import src.tui as tui
 def main():
-    printLogo()
+    """
+    The main entry point for PassDB.
+
+    Loads the configuration from the config file, initializes the database and
+    import directories if they do not exist, and then enters the text-based user
+    interface.
+
+    Returns:
+        None
+    """
     
+    tui.printLogo()
     with open("passdb.yml", "r") as f:
         print("Loading the config file...")
         time.sleep(0.5)
@@ -16,57 +28,43 @@ def main():
             firstTime(config)
         else: 
             pass
-        tui(config)
+        tui.tui(config)
         f.close()
+
+
     
 def firstTime (config):
+    """
+    Initializes the necessary directories and files for first-time PassDB users.
+
+    This function creates the database directory specified in the `config` and 
+    initializes an empty `hash_db.txt` file within it. If the import directory 
+    does not exist, it creates that as well. Displays progress messages and clears 
+    the screen upon completion.
+
+    Args:
+        config (dict): Configuration dictionary containing paths for `db_location`
+                       and `import_location`.
+
+    """
+
     print("It's your first time using PassDB")
     print("Creating the directories...")
     os.mkdir(config.get("db_location"))
     open(config.get("db_location") + "/hash_db.txt" , "w").close
     if(os.path.exists(config.get("import_location")) == False):
         os.mkdir(config.get("import_location"))
+    if(os.path.exists(config.get("export_results_location")) == False):
+        os.mkdir(config.get("export_results_location"))
     print("Done\n\n")
     time.sleep(2)
     print("\033[2J")
-    
-def tui(config):
-    printLogo()
-    print("01)  Add a combolist")
-    print("02)  Search a combolist")
-    print("99) Exit")
-    print("\n")
-    choice = str(input("  PassDB> "))
-    print("")
-    if (choice == "1"):
-        sorter.sorter(config)
-    elif (choice == "2"):
-        searcher.searcher(config)
-    elif (choice == "99"):
-        print("Goodbye")
-        exit()
-    print("Done")
 
-def printLogo():
-    """
-    Prints the logo of the application in ASCII art format.
-    
-    This function outputs a stylized logo using ASCII characters to the console.
-    The logo includes decorative text art with various symbols and spaces.
-    """
 
-    print("\t\t\t\t\t")
-    print("                                                     ")
-    print(" ██▓███   ▄▄▄        ██████   ██████ ▓█████▄  ▄▄▄▄   ")
-    print("▓██░  ██▒▒████▄    ▒██    ▒ ▒██    ▒ ▒██▀ ██▌▓█████▄ ")
-    print("▓██░ ██▓▒▒██  ▀█▄  ░ ▓██▄   ░ ▓██▄   ░██   █▌▒██▒ ▄██")
-    print("▒██▄█▓▒ ▒░██▄▄▄▄██   ▒   ██▒  ▒   ██▒░▓█▄   ▌▒██░█▀  ")
-    print("▒██▒ ░  ░ ▓█   ▓██▒▒██████▒▒▒██████▒▒░▒████▓ ░▓█  ▀█▓")
-    print("▒▓▒░ ░  ░ ▒▒   ▓▒█░▒ ▒▓▒ ▒ ░▒ ▒▓▒ ▒ ░ ▒▒▓  ▒ ░▒▓███▀▒")
-    print("░▒ ░       ▒   ▒▒ ░░ ░▒  ░ ░░ ░▒  ░ ░ ░ ▒  ▒ ▒░▒   ░ ")
-    print("░░         ░   ▒   ░  ░  ░  ░  ░  ░   ░ ░  ░  ░    ░ ")
-    print("               ░  ░      ░        ░     ░     ░      ")
-    print("\t\t\t\t\t")
+
+ 
+
+
 
 if __name__ == '__main__':
     main()

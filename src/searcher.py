@@ -1,8 +1,25 @@
 import os
 
-def searcher(config):
+def searcher(config, outputFile):
+    """
+    Searches the sorted database for a given email address.
+
+    This function takes an email address as input and searches the sorted
+    database for any lines containing that email address. If the email address is
+    found, it prints the line from the database file. If the email address is not
+    found, it prints a message to the console indicating that the email address
+    was not found.
+
+    Args:
+        config (dict): Configuration dictionary containing paths for
+                       `db_location` and `export_results_location`.
+        outputFile (str): Path to a file to write the results to. If None, the
+                          results will be printed to the console instead.
+
+    """
+    if config.get("debug") == True: print("outputFile insinde searcher : ", outputFile)
+    if config.get("debug") == True: print("outputFile type : ", type(outputFile))
     email = str(input("Enter your email to search: "))
-    script_dir = os.path.dirname(os.path.realpath(__file__))
     print("Starting search...")
     for filename in os.listdir(config.get("db_location") + "/sorted"):
         # print("filename: ", filename)
@@ -19,8 +36,19 @@ def searcher(config):
                     # print("Opening file: ", filename)
                     filecontent = open(config.get("db_location") + "/sorted/" + filename, "r").readlines()
                     for line in filecontent:
-                        if email in line or email in line.upper():
-                            print(line)
+                        if email in line:
+                            if config.get("debug") == True: print("outputFile type : ", type(outputFile))
+                            if config.get("debug") == True: print(outputFile , " output file")
+                            if config.get("debug") == True: print(config.get("export_results_location") + " export location")
+                            if config.get("debug") == True: print(os.path.join(str(config.get("export_results_location")) , outputFile) + " os.path.join")
+                            if outputFile == None:
+                                print(line)
+                            else:
+                                with open(os.path.join(str(config.get("export_results_location")) + outputFile), "a+", encoding='utf-8') as outputFile_object:
+                                    print("Exporting to: ", os.path.join(str(config.get("export_results_location")) , str(outputFile)))
+                                    outputFile_object.write(line)
+                                    outputFile_object.close()
+                                print(line)
                         else: 
                             # print(line, "!=", email)
                             None
@@ -45,9 +73,17 @@ def searcher(config):
                     filecontent = open(config.get("db_location") + "/sorted/" + filename, "r").readlines()
                     for line in filecontent:
                         if email in line:
-                            print(line)
+                            if config.get("debug") == True: print(outputFile)
+                            if outputFile == None:
+                                print(line)
+                            else:
+                                with open(os.path.join(config.get("export_results_location") + outputFile), "a+", encoding='utf-8') as outputFile_object:
+                                    print("Exporting to: ", config.get("export_results_location") + "output.txt")
+                                    outputFile_object.write(line)
+                                    outputFile_object.close()
+                                print(line)
                         else: 
-                            print(line, "!=", email)
+                            # print(line, "!=", email)
                             None
 
                 else:
@@ -69,7 +105,15 @@ def searcher(config):
                     filecontent = open(config.get("db_location") + "/sorted/" + filename, "r").readlines()
                     for line in filecontent:
                         if email in line:
-                            print(line)
+                            if config.get("debug") == True: print(outputFile)
+                            if outputFile == None:
+                                print(line)
+                            else:
+                                with open(os.path.join(config.get("export_results_location") + outputFile), "a+", encoding='utf-8') as outputFile_object:
+                                    print("Exporting to: ", config.get("export_results_location") + "output.txt")
+                                    outputFile_object.write(line)
+                                    outputFile_object.close()
+                                print(line)
                         else: 
                             print(line, "!=", email)
                             None

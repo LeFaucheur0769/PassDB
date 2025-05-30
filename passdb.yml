@@ -1,3 +1,5 @@
-db_location : "output"
-create_db_in_toolFolder : true
-import_location : "import"
+db_location: "output/"
+create_db_in_toolFolder: true
+import_location: "import/"
+export_results_location: "export/"
+debug: false

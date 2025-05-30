@@ -170,3 +170,5 @@ import
 output
 temp
 test.py
+export/
+.vscode
