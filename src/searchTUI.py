@@ -20,7 +20,9 @@ def searchMenu(config):
     # print("03) ")
     print("99) Return to main menu")
     
+    print("")
     choice = str(input("  PassDB> "))
+    print("")
     if choice == "1":
         SaveOutput(config)
     if choice == "2":
@@ -44,7 +46,9 @@ def SaveOutput(config):
     """
     tui.printLogo()
     print("Enter the name of the file you would like to save to: ")
+    print("")
     outputName = str(input("  PassDB> "))
+    print("")
     if config.get("debug") == True: print("outputName: ", outputName)
     if (checkIfFileExists(config, outputName) == True):
         tui.printLogo()
@@ -53,14 +57,18 @@ def SaveOutput(config):
         print("02) Change name")
         print("03) Cancel")
         print("99) Return to main menu")
+        print("")
         OverwriteChoice = str(input("  PassDB> "))
+        print("")
         if OverwriteChoice == "1":
             startSearcher(config, outputName)
         if OverwriteChoice == "2":
             tui.printLogo()
             while (checkIfFileExists(config, outputName) == True):
                 print("Enter the name of the file you would like to save to: ")
+                print("")
                 outputName = str(input("  PassDB> "))
+                print("")
                 if checkIfFileExists(config, outputName) == True:
                     print("This file already exists")
                 else:
@@ -73,12 +81,34 @@ def SaveOutput(config):
         startSearcher(config, outputName)
 
 def startSearcher(config, outputName):
+    """
+    Starts the searcher function with the modified config and the file path as
+    arguments. It creates the file if it does not exist and then calls the
+    searcher function.
+
+    Args:
+        config (dict): Configuration dictionary containing paths for
+                       `db_location` and `import_location`.
+        outputName (str): The filename to save the results to. If the file
+                          already exists, it will be overwritten.
+    """
     outputFile = outputName
     open(config.get("export_results_location") + "/" + outputName, "w").close
     searcher.searcher(config, outputFile)
     
     
 def checkIfFileExists(config, outputFile):
+    """
+    Checks if a file exists in the export_results_location directory.
+
+    Args:
+        config (dict): Configuration dictionary containing paths for
+                       `db_location` and `import_location`.
+        outputFile (str): The filename to check for existence.
+
+    Returns:
+        bool: True if the file exists, False otherwise.
+    """
     if os.path.exists(config.get("export_results_location") + "/" + outputFile):
         return True
     else:

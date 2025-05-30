@@ -21,6 +21,7 @@ def searcher(config, outputFile):
     if config.get("debug") == True: print("outputFile type : ", type(outputFile))
     email = str(input("Enter your email to search: "))
     print("Starting search...")
+    print("Exporting to: ", os.path.join(str(config.get("export_results_location")) , str(outputFile)))
     for filename in os.listdir(config.get("db_location") + "/sorted"):
         # print("filename: ", filename)
         if len(email) >= 3: 
@@ -32,9 +33,10 @@ def searcher(config, outputFile):
                 thirdletter = stripedemail[2]
                 # print("filename: ", filename, "firstletter: ", firstletter)
                 if str(filename) == str(firstletter) + str(secondletter) + str(thirdletter) + ".txt" or str(filename) == str(firstletter).upper() + str(secondletter).upper() + str(thirdletter).upper() + ".txt":
-                    print("looking for ", email, " in ", filename)
+                    if config.get("debug") == True: print("looking for ", email, " in ", filename)
                     # print("Opening file: ", filename)
                     filecontent = open(config.get("db_location") + "/sorted/" + filename, "r").readlines()
+                    
                     for line in filecontent:
                         if email in line:
                             if config.get("debug") == True: print("outputFile type : ", type(outputFile))
@@ -45,10 +47,9 @@ def searcher(config, outputFile):
                                 print(line)
                             else:
                                 with open(os.path.join(str(config.get("export_results_location")) + outputFile), "a+", encoding='utf-8') as outputFile_object:
-                                    print("Exporting to: ", os.path.join(str(config.get("export_results_location")) , str(outputFile)))
                                     outputFile_object.write(line)
                                     outputFile_object.close()
-                                print(line)
+                                    if config.get("print_result_export_file") == True: print(line)
                         else: 
                             # print(line, "!=", email)
                             None
@@ -81,7 +82,7 @@ def searcher(config, outputFile):
                                     print("Exporting to: ", config.get("export_results_location") + "output.txt")
                                     outputFile_object.write(line)
                                     outputFile_object.close()
-                                print(line)
+                                    if config.get("print_result_export_file") == True: print(line)
                         else: 
                             # print(line, "!=", email)
                             None
@@ -113,7 +114,7 @@ def searcher(config, outputFile):
                                     print("Exporting to: ", config.get("export_results_location") + "output.txt")
                                     outputFile_object.write(line)
                                     outputFile_object.close()
-                                print(line)
+                                    if config.get("print_result_export_file") == True: print(line)
                         else: 
                             print(line, "!=", email)
                             None
