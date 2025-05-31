@@ -50,6 +50,7 @@ PassDB is highly configurable via the `passdb.yml` file located in the project d
 | `import_location`          | Path from which raw combolists are imported                                                                                         |
 | `export_results_location`  | Directory where search results or exports are saved                                                                                 |
 | `print_result_export_file` | If `true`, results will be printed to the terminal even if they're being exported                                                   |
+|`dynamic_menus`             | If `true`, PassDB will use the interactives menus
 | `quiet`                    | If `true`, disables interactivity and only prints results (useful for scripting)                                                    |
 
 

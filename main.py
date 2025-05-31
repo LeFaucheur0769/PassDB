@@ -4,7 +4,6 @@ import time
 
 import src.sorter as sorter
 import src.searcher as searcher
-from src.searchTUI import searchMenu
 import src.tui as tui
 def main():
     """
