@@ -1,8 +1,2 @@
-os
-yaml
-time
-hashlib
-concurrent.futures
-collections
+pyyaml
 logging
-time
