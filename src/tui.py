@@ -1,5 +1,6 @@
 import src.searchTUI as searchTUI
 import src.sorter as sorter
+import os
 
 def tui(config):
     """
@@ -15,7 +16,7 @@ def tui(config):
                        `db_location` and `import_location`.
 
     """
-    printLogo()
+    welcomeScreen()
     print("01)  Add a combolist")
     print("02)  Search a combolist")
     print("99) Exit")
@@ -39,7 +40,7 @@ def printLogo():
     This function outputs a stylized logo using ASCII characters to the console.
     The logo includes decorative text art with various symbols and spaces.
     """
-    print("\033[2J")
+    os.system('clear')
     print("\t\t\t\t\t")
     print("                                                     ")
     print(" ██▓███   ▄▄▄        ██████   ██████ ▓█████▄  ▄▄▄▄   ")
@@ -54,7 +55,7 @@ def printLogo():
     print("\t\t\t\t\t")
     
 def welcomeScreen ():
-    print("\033[2J")
+    os.system('clear')
     print("\t\t\t\t\t")
     print("                                                     ")
     print(" ██▓███   ▄▄▄        ██████   ██████ ▓█████▄  ▄▄▄▄   ")
@@ -66,4 +67,6 @@ def welcomeScreen ():
     print("░▒ ░       ▒   ▒▒ ░░ ░▒  ░ ░░ ░▒  ░ ░ ░ ▒  ▒ ▒░▒   ░ ")
     print("░░         ░   ▒   ░  ░  ░  ░  ░  ░   ░ ░  ░  ░    ░ ")
     print("               ░  ░      ░        ░     ░     ░      ")
+    print("\t\t\t\t\t")
+    print("        Welcome to PassDB - By LeFaucheur0769        ")
     print("\t\t\t\t\t")
