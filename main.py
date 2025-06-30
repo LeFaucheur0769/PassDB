@@ -41,17 +41,29 @@ def PassDB(CONFIG):
 
     print("hi")
     tui.printLogo()
-    with open(CONFIG, "r") as f:
-        print("Loading the config file...")
-        time.sleep(0.5)
-        print("\033[2J")
-        config = yaml.safe_load(f)
-        if (os.path.exists("output") == False):
-            firstTime(config)
-        else: 
-            pass
-        tui.tui(config)
-        f.close()
+    try:
+        with open(CONFIG, "r") as f:
+            print("Loading the config file...")
+            time.sleep(0.5)
+            print("\033[2J")
+            config = yaml.safe_load(f)
+            if (os.path.exists("output") == False):
+                firstTime(config)
+            else: 
+                pass
+            tui.tui(config)
+            f.close()
+    except yaml.YAMLError as exc:
+        print(exc)
+
+# def PassDB_quiet(CONFIG):
+#     try:
+#         with open(CONFIG, "r") as f:
+#             config = yaml.safe_load(f)
+#             f.close()
+#     except yaml.YAMLError as exc:
+#         print(exc)
+#         exit()
 
 
     
@@ -94,6 +106,12 @@ def arguments(args):
         CONFIG = args[0]
 
 def parser():
+    """
+    Parse command line arguments.
+
+    This function parses the command line arguments and acts accordingly. 
+
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", type=str, help="Specify a configuration file")
     parser.add_argument("-d", "--debug", action="store_true", help="Enable debug mode")
