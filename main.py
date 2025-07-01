@@ -140,7 +140,10 @@ def parser():
     if args.import_dir:
         print("Import directory: {}".format(args.import_dir))
         if args.import_dir:
-            None
+            with open(CONFIG, "r") as f:
+                config = yaml.safe_load(f)
+                f.close()
+            sorter.sorter(config)
         else:
             with open(CONFIG, "r") as f:
                 config = yaml.safe_load(f)
