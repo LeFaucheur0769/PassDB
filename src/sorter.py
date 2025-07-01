@@ -262,42 +262,58 @@ def alpha2fileOptimizedOld(file, importPath, config):
         # Print debug information if the 'debug' key is set
         if config.get("debug"):
             print(f"  ↳ {e}")
-
+            
+def is_ascii_file(filepath):
+    try:
+        with open(filepath, 'r', encoding='ascii') as f:
+            f.read(4096)  # read part of the file
+        return True
+    except (UnicodeDecodeError, OSError):
+        return False
 
 def sorter(config):
     """
-    Checks if each file has already been added to the database via hasher().
-    If not, uses ThreadPoolExecutor to sort them concurrently with alpha2fileOptimized().
+    Sort the files in the import directory by their first three alphanumeric characters and write them to the database directory.
+
+    Args:
+        config (dict): A configuration dictionary containing the paths for the import and database directories.
+
     """
     check_dir(config)
     importPath = config.get("import_location")
-    files = os.listdir(importPath)
 
     with ThreadPoolExecutor(max_workers=8) as executor:
         futures = {}
 
-        for eachfile in files:
-            print(f"Checking if {eachfile}'s hash was already added to the database...")
+        # Iterate over the files in the import directory
+        for root, dirs, files in os.walk(importPath):
+            for eachfile in files:
+                filepath = os.path.join(root, eachfile)
 
-            if hasher(eachfile, importPath, config) is True:
-                print("\033[91mThe file was already added to the database\033[0m")
-            else:
-                print(
-                    f"\033[92mSorting {eachfile} and adding it to the database\033[0m"
-                )
-                # Submit the sorting task to the thread pool
-                futures[
-                    executor.submit(alpha2fileOptimized, eachfile, importPath, config)
-                ] = eachfile
+                # Skip non-ASCII files
+                if not is_ascii_file(filepath):
+                    continue
 
-        # Optionally wait for all threads to complete and handle exceptions
+                # Check if the file was already added to the database
+                print(f"Checking if {eachfile}'s hash was already added to the database...")
+
+                if hasher(eachfile, root, config) is True:
+                    print("\033[91mThe file was already added to the database\033[0m")
+                else:
+                    print(f"\033[92mSorting {eachfile} and adding it to the database\033[0m")
+
+                    # Submit the sorting task to the thread pool
+                    futures[executor.submit(alpha2fileOptimized, eachfile, root, config)] = eachfile
+
+        # Iterate over the completed futures and print the results
         for future in as_completed(futures):
             file = futures[future]
             try:
-                future.result()  # This re-raises exceptions from the thread, if any
+                future.result()
                 print(f"✅ Done sorting {file}")
             except Exception as e:
                 print(f"\033[91m❌ Error sorting {file}: {e}\033[0m")
+
     """
     This is a test function. It is commented out because it is not being used.
     """
