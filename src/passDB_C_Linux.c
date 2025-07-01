@@ -121,7 +121,11 @@ int main(int argc, char *argv[]) {
         char filepath[512];
 
         while ((entry = readdir(dir)) != NULL) {
-            if (strstr(entry->d_name, ".txt")) {
+            // if (strstr(entry->d_name, ".txt")) {
+            //     snprintf(filepath, sizeof(filepath), "%s/%s", input_path, entry->d_name);
+            //     process_file(filepath, output_dir);
+            // }
+            if (entry->d_type == DT_REG) {  // regular file
                 snprintf(filepath, sizeof(filepath), "%s/%s", input_path, entry->d_name);
                 printf("📄 Processing %s\n", entry->d_name);
                 process_file(filepath, output_dir);
