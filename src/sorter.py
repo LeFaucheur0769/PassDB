@@ -87,6 +87,7 @@ def hasher(filename, importPath, config):
             hash_db_new.write(file_hash + "\n")
         return False
 
+
     
 
 def firstalpha2file(importPath):
@@ -131,7 +132,51 @@ def firstalpha2file(importPath):
                 with open(os.join(importPath + "/output/sorted/") + char + ".txt", "a", encoding="utf-8", errors="ignore") as output:
                     output.write(line + "\n")
 
+def runScript(input_path, output_dir, config):
+    import subprocess
+    import os
+    OS = os.name
+    if OS == 'nt':
+        c_binary = config.get("win_binary")
+    elif OS == 'posix': 
+        c_binary = config.get("c_binary")
+    print(input_path, " ", output_dir, " ", c_binary)
+    try:
+        # Run the script with arguments
+        result = subprocess.run(
+            [c_binary, input_path, output_dir],
+            capture_output=True,  # captures stdout and stderr
+            text=True,            # returns output as string instead of bytes
+            check=True            # raises exception if script fails
+        )
+        # print("Script output:")
+        print(result.stdout)  # print the script's stdout
+    except subprocess.CalledProcessError as e:
+        print(f"Error running script: {e}")
+        print("Script stderr:")
+        print(e.stderr)
+    
+
 def alpha2fileOptimized (file, importPath, config):
+    from collections import defaultdict
+
+    if not file.endswith(".txt"):
+        return
+    # Print the name of the file being processed
+    print(f"Sorting file: {file}")
+
+    # Construct the path to the input file
+    input_path = os.path.join(importPath, file)
+
+    # Construct the path to the output directory
+    output_dir = os.path.join(config.get("db_location", ""), "sorted")
+
+    # Create the output directory if it doesn't exist
+    os.makedirs(output_dir, exist_ok=True)
+    runScript(input_path, output_dir, config)
+            
+            
+def alpha2fileOptimizedOld (file, importPath, config):
     """
     Processes a text file by reading its lines and categorizing them based on the
     first three alphanumeric characters. Each group of lines is then written to a

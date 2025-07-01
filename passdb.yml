@@ -3,6 +3,9 @@ db_location: "output/"
 create_db_in_toolFolder: true
 import_location: "import/"
 export_results_location: "export/"
+bash_script: "src/sorter.sh"
+c_binary: "src/passDB_C_Linux"
+win_binary: "src/passDB_C_Windows.exe"
 print_result_export_file : false 
 dynamic_menus : true
 quiet : false
