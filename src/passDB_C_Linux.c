@@ -9,16 +9,15 @@
 #define MAX_LINE_LEN 4096
 #define MAX_WORDS 512
 
-// Utility: lowercase first 3 chars of string, alphanumeric only
+// Utility: lowercase first 3 chars of string
 void get_prefix(const char *line, char *prefix_out) {
-    int i, j = 0;
-    for (i = 0; line[i] && j < 3; i++) {
-        if (isalnum(line[i])) {
-            prefix_out[j++] = tolower(line[i]);
-        }
+    int i;
+    for (i = 0; i < 3 && line[i] != '\0'; i++) {
+        prefix_out[i] = tolower(line[i]);
     }
-    prefix_out[j] = '\0';
+    prefix_out[i] = '\0';
 }
+
 
 // Utility: trim newline and trailing spaces
 void trim_line(char *line) {
