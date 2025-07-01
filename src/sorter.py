@@ -263,18 +263,18 @@ def alpha2fileOptimizedOld(file, importPath, config):
         if config.get("debug"):
             print(f"  ↳ {e}")
             
-def is_ascii_file(filepath):
-    try:
-        with open(filepath, 'r', encoding='ascii') as f:
-            f.read(4096)  # read part of the file
-        # If read succeeds with ASCII, no unicode beyond ASCII in the first 4k
-        return False
-    except UnicodeDecodeError:
-        # Decoding with ASCII failed => file contains unicode chars beyond ASCII
-        return True
-    except OSError:
-        # File could not be read — handle as needed, maybe return False
-        return False
+# def is_ascii_file(filepath):
+#     try:
+#         with open(filepath, 'r', encoding='ascii') as f:
+#             f.read(4096)  # read part of the file
+#         # If read succeeds with ASCII, no unicode beyond ASCII in the first 4k
+#         return False
+#     except UnicodeDecodeError:
+#         # Decoding with ASCII failed => file contains unicode chars beyond ASCII
+#         return True
+#     except OSError:
+#         # File could not be read — handle as needed, maybe return False
+#         return False
 def sorter(config):
     """
     Sort the files in the import directory by their first three alphanumeric characters
@@ -297,10 +297,10 @@ def sorter(config):
             for eachfile in files:
                 filepath = os.path.join(root, eachfile)
 
-                # Skip non-ASCII files
-                if not is_ascii_file(filepath):
-                    print(filepath + " is not ASCII")
-                    continue
+                # # Skip non-ASCII files
+                # if not is_ascii_file(filepath):
+                #     print(filepath + " is not ASCII")
+                #     continue
 
                 # Check if the file was already added to the database
                 print(f"Checking if {eachfile}'s hash was already added to the database...")
