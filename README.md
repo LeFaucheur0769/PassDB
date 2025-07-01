@@ -28,7 +28,15 @@ source .venv/bin/activate
 ```bash
 pip install -r requirements.txt
 ```
+### 3. Setup
 
+#### Windows
+
+Should be ready to work however the process of adding files to the database is much slower than on linux due to windows limitations while handeling many I/O actions
+
+#### Linux
+
+Make sure that the files in the src folder are executable by the stystem or else you will have an error and have to delete the hash_db file before trying again.
 
 ##  Getting Started
 
