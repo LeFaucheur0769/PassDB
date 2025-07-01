@@ -139,6 +139,13 @@ def parser():
         print("Email address: {}".format(args.email))
     if args.import_dir:
         print("Import directory: {}".format(args.import_dir))
+        if args.import_dir:
+            None
+        else:
+            with open(CONFIG, "r") as f:
+                config = yaml.safe_load(f)
+                f.close()
+            sorter.sorter(config)
     if args.output:
         print("Output file: {}".format(args.output))
 
