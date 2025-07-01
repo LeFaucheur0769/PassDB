@@ -13,7 +13,6 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 alphaNum = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 
 
-
 def check_dir(config):
     """
     Checks if the necessary directories for the database exist and creates them if not.
@@ -33,8 +32,7 @@ def check_dir(config):
     if not os.path.exists(config.get("import_location")):
         os.makedirs(config.get("import_location"))
     if not os.path.exists(config.get("db_location") + "/hash_db.txt"):
-        open(config.get("db_location") + "/hash_db.txt" , "w").close
-        
+        open(config.get("db_location") + "/hash_db.txt", "w").close
 
 
 def hasher(filename, importPath, config):
@@ -54,13 +52,14 @@ def hasher(filename, importPath, config):
     """
     # Construct the full path to the file
     file_path = os.path.join(importPath, filename)
-    
+
     # Open the file and read its contents
     with open(file_path, encoding="utf-8", errors="ignore") as file2open:
         contents = file2open.read()
         # Calculate the MD5 hash of the file contents
         file_hash = hashlib.md5(contents.encode()).hexdigest()
-        if config.get("debug") == True : print(file_hash)
+        if config.get("debug"):
+            print(file_hash)
 
     # Path to the hash database file
     # hash_db_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "output", "hash_db.txt")
@@ -77,7 +76,9 @@ def hasher(filename, importPath, config):
             else:
                 # Add the hash to the "hash_db.txt" file
                 print("Adding file to database")
-                with open(hash_db_path, "a", encoding="utf-8", errors="ignore") as hash_db_append:
+                with open(
+                    hash_db_path, "a", encoding="utf-8", errors="ignore"
+                ) as hash_db_append:
                     hash_db_append.write(file_hash + "\n")
                 return False
     except FileNotFoundError:
@@ -87,8 +88,6 @@ def hasher(filename, importPath, config):
             hash_db_new.write(file_hash + "\n")
         return False
 
-
-    
 
 def firstalpha2file(importPath):
     """
@@ -115,7 +114,11 @@ def firstalpha2file(importPath):
         # Check if the file is a text file
         if file.endswith(".txt"):
             # Open the file and read its contents
-            with open(os.path.join(importPath, "import", encoding="utf-8", errors="ignore") + "/" + file) as f:
+            with open(
+                os.path.join(importPath, "import", encoding="utf-8", errors="ignore")
+                + "/"
+                + file
+            ) as f:
                 # Add the passwords from the file to the list
                 password.extend([line.strip() for line in f if line.strip()])
 
@@ -129,25 +132,34 @@ def firstalpha2file(importPath):
             # Check if the first character of the password matches the current character
             if str(line[0]) == char:
                 # Append the password to the corresponding file
-                with open(os.join(importPath + "/output/sorted/") + char + ".txt", "a", encoding="utf-8", errors="ignore") as output:
+                with open(
+                    os.join(importPath + "/output/sorted/") + char + ".txt",
+                    "a",
+                    encoding="utf-8",
+                    errors="ignore",
+                ) as output:
                     output.write(line + "\n")
+
 
 def runScript(input_path, output_dir, config):
     import subprocess
     import os
+
     OS = os.name
-    if OS == 'nt':
+    if OS == "nt":
         c_binary = config.get("win_binary")
-    elif OS == 'posix': 
+    elif OS == "posix":
         c_binary = config.get("c_binary")
+    else:
+        exit()
     print(input_path, " ", output_dir, " ", c_binary)
     try:
         # Run the script with arguments
         result = subprocess.run(
             [c_binary, input_path, output_dir],
             capture_output=True,  # captures stdout and stderr
-            text=True,            # returns output as string instead of bytes
-            check=True            # raises exception if script fails
+            text=True,  # returns output as string instead of bytes
+            check=True,  # raises exception if script fails
         )
         # print("Script output:")
         print(result.stdout)  # print the script's stdout
@@ -155,9 +167,9 @@ def runScript(input_path, output_dir, config):
         print(f"Error running script: {e}")
         print("Script stderr:")
         print(e.stderr)
-    
 
-def alpha2fileOptimized (file, importPath, config):
+
+def alpha2fileOptimized(file, importPath, config):
     from collections import defaultdict
 
     if not file.endswith(".txt"):
@@ -174,9 +186,9 @@ def alpha2fileOptimized (file, importPath, config):
     # Create the output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
     runScript(input_path, output_dir, config)
-            
-            
-def alpha2fileOptimizedOld (file, importPath, config):
+
+
+def alpha2fileOptimizedOld(file, importPath, config):
     """
     Processes a text file by reading its lines and categorizing them based on the
     first three alphanumeric characters. Each group of lines is then written to a
@@ -252,7 +264,6 @@ def alpha2fileOptimizedOld (file, importPath, config):
             print(f"  ↳ {e}")
 
 
-
 def sorter(config):
     """
     Checks if each file has already been added to the database via hasher().
@@ -271,9 +282,13 @@ def sorter(config):
             if hasher(eachfile, importPath, config) is True:
                 print("\033[91mThe file was already added to the database\033[0m")
             else:
-                print(f"\033[92mSorting {eachfile} and adding it to the database\033[0m")
+                print(
+                    f"\033[92mSorting {eachfile} and adding it to the database\033[0m"
+                )
                 # Submit the sorting task to the thread pool
-                futures[executor.submit(alpha2fileOptimized, eachfile, importPath, config)] = eachfile
+                futures[
+                    executor.submit(alpha2fileOptimized, eachfile, importPath, config)
+                ] = eachfile
 
         # Optionally wait for all threads to complete and handle exceptions
         for future in as_completed(futures):
@@ -285,9 +300,8 @@ def sorter(config):
                 print(f"\033[91m❌ Error sorting {file}: {e}\033[0m")
     """
     This is a test function. It is commented out because it is not being used.
-    """    
+    """
     # test()
-
 
 
 # if __name__ == "__main__":
