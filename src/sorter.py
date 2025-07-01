@@ -273,25 +273,29 @@ def is_ascii_file(filepath):
 
 def sorter(config):
     """
-    Sort the files in the import directory by their first three alphanumeric characters and write them to the database directory.
+    Sort the files in the import directory by their first three alphanumeric characters
+    and write them to the database directory.
 
     Args:
-        config (dict): A configuration dictionary containing the paths for the import and database directories.
-
+        config (dict): A configuration dictionary containing the paths for the import
+        and database directories.
     """
+    # Ensure the necessary directories exist
     check_dir(config)
     importPath = config.get("import_location")
 
+    # Use a thread pool to process files concurrently
     with ThreadPoolExecutor(max_workers=8) as executor:
         futures = {}
 
-        # Iterate over the files in the import directory
+        # Traverse through the import directory
         for root, dirs, files in os.walk(importPath):
             for eachfile in files:
                 filepath = os.path.join(root, eachfile)
 
                 # Skip non-ASCII files
                 if not is_ascii_file(filepath):
+                    print(filepath + " is not ASCII")
                     continue
 
                 # Check if the file was already added to the database
@@ -305,7 +309,7 @@ def sorter(config):
                     # Submit the sorting task to the thread pool
                     futures[executor.submit(alpha2fileOptimized, eachfile, root, config)] = eachfile
 
-        # Iterate over the completed futures and print the results
+        # Handle the results of the completed tasks
         for future in as_completed(futures):
             file = futures[future]
             try:
@@ -313,11 +317,6 @@ def sorter(config):
                 print(f"✅ Done sorting {file}")
             except Exception as e:
                 print(f"\033[91m❌ Error sorting {file}: {e}\033[0m")
-
-    """
-    This is a test function. It is commented out because it is not being used.
-    """
-    # test()
 
 
 # if __name__ == "__main__":
