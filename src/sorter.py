@@ -172,8 +172,8 @@ def runScript(input_path, output_dir, config):
 def alpha2fileOptimized(file, importPath, config):
     from collections import defaultdict
 
-    if not file.endswith(".txt"):
-        return
+    # if not file.endswith(".txt"):
+    #     return
     # Print the name of the file being processed
     print(f"Sorting file: {file}")
 
