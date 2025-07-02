@@ -52,7 +52,7 @@ def searcher(config, outputFile):
                     print("looking for ", email, " in ", filename)
                 # Open the file and read its contents
                 filecontent = open(
-                    config.get("db_location") + "/sorted/" + filename, "r"
+                    config.get("db_location") + "/sorted/" + filename, "r", encoding="utf-8", errors="replace"
                 ).readlines()
                 # Iterate over the lines in the file
                 for line in filecontent:
