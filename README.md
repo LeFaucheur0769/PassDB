@@ -32,7 +32,7 @@ pip install -r requirements.txt
 
 #### Windows
 
-Should be ready to work however the process of adding files to the database is much slower than on linux due to windows limitations while handeling many I/O actions
+Should be ready to work however the process of adding files to the database is much slower than on linux due to windows limitations while handeling many I/O actions. If you can't run it under linux the best is to run everything inside wsl and move the files in the wsl disk however most of the tool should still work if you are using windows
 
 #### Linux
 
