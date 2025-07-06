@@ -24,5 +24,5 @@ awk '
 	      print email ":" pass   
     }
 }
-' "$OUTPUT" > "$OUTPUT"
+' "$INPUT" > "$OUTPUT"
 sed -i 's/\r//' "$OUTPUT"
