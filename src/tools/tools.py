@@ -76,7 +76,7 @@ def UrlEmailPassDIR_txt_only():
         for root, dirs, files in os.walk(inputDir):
             # Iterate over all the files in the given input directory
             for file in files:
-                if ".txt" not in files:
+                if ".txt" not in file:
                     continue
                 else: 
                     # Construct the file path
