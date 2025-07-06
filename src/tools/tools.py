@@ -74,29 +74,30 @@ def UrlEmailPassDIR_txt_only():
         futures = {}
         # Iterate over all the files in the given input directory
         for root, dirs, files in os.walk(inputDir):
-            if ".txt" not in files:
-                continue
-            else:
-                for file in files:
+            # Iterate over all the files in the given input directory
+            for file in files:
+                if ".txt" not in files:
+                    continue
+                else: 
                     # Construct the file path
                     filepath = os.path.join(root, file)
                     # Construct the output file path
                     outputfile = os.path.join(outputDir, file)
                     # Submit the task to the executor
                     futures[executor.submit(runSript, URL_EMAIL_PASS_PATH, filepath, outputfile)] = filepath
-            # Iterate over the completed futures
-            for future in as_completed(futures):
-                # Get the file path associated with the future
-                filepath = futures[future]
-                try:
-                    # Get the result of the future
-                    future.result()
-                except Exception as exc:
-                    # If an exception was raised, print it
-                    print('%s generated an exception: %s' % (filepath, exc))
-                else:
-                    # If no exception was raised, print the result
-                    print(str(filepath) + ' processed successfully')
+        # Iterate over the completed futures
+        for future in as_completed(futures):
+            # Get the file path associated with the future
+            filepath = futures[future]
+            try:
+                # Get the result of the future
+                future.result()
+            except Exception as exc:
+                # If an exception was raised, print it
+                print('%s generated an exception: %s' % (filepath, exc))
+            else:
+                # If no exception was raised, print the result
+                print(str(filepath) + ' processed successfully')
 
 def UrlEmailPassDIR():
     """
