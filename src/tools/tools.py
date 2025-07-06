@@ -6,7 +6,7 @@ import questionary
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
 
-URL_EMAIL_PASS_PATH = "urlEmailPass.sh"
+URL_EMAIL_PASS_PATH = os.path.abspath("src/tools/urlEmailPass.sh")
 DUPLICATE_FINDER_ALREADY_SORTED_PATH = "DuplicateFinderAlreadySorted.sh"
 
 def tools():
