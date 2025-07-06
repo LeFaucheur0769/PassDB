@@ -91,7 +91,8 @@ def UrlEmailPassDIR():
                 print('%s generated an exception: %s' % (filepath, exc))
             else:
                 # If no exception was raised, print the result
-                print('%s produced %s' % (filepath))
+                print(str(filepath) + ' processed successfully')
+
 
 def RemoveDuplicatesAlreadySorted():
     """
