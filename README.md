@@ -61,5 +61,9 @@ PassDB is highly configurable via the `passdb.yml` file located in the project d
 |`dynamic_menus`             | If `true`, PassDB will use the interactives menus
 | `quiet`                    | If `true`, disables interactivity and only prints results (useful for scripting)                                                    |
 
-
-
+# Torrent
+## Leaks included
+TXTLOG_ALIEN_169-200
+15GB of random combolists found on telegram
+zeeroq leak
+BreachCompilation data
