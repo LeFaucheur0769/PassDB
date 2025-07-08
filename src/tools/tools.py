@@ -187,5 +187,3 @@ def runSript(script_path, input, output=None):
         cmd.append(output)
     subprocess.run(cmd)
     
-
-tools()
