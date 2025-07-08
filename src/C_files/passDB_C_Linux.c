@@ -10,6 +10,11 @@
 #define MAX_WORDS 512
 
 // Utility: lowercase first 3 chars of string
+/**
+ * @brief Get the first 3 char of a string, lowercased
+ * @param line The string to get the prefix from
+ * @param prefix_out A buffer to store the prefix in
+ */
 void get_prefix(const char *line, char *prefix_out) {
     int i;
     for (i = 0; i < 3 && line[i] != '\0'; i++) {

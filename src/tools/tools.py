@@ -8,6 +8,7 @@ import os
 
 URL_EMAIL_PASS_PATH = os.path.abspath("src/tools/urlEmailPass.sh")
 DUPLICATE_FINDER_ALREADY_SORTED_PATH = "DuplicateFinderAlreadySorted.sh"
+MOVE_TO_OTHER_PASS_DB_PATH =  os.path.abspath("src/tools/mvToUbuntu.sh")
 
 def tools():
     """
@@ -23,7 +24,7 @@ def tools():
     :return: None
     """
     # List of options for the user
-    choices = ["Url Email Pass", "Url Email Pass DIR","Url Email Pass DIR txt only", "Exit"]
+    choices = ["Url Email Pass", "Url Email Pass DIR","Url Email Pass DIR txt only", "Move to other PassDB" ,"Exit"]
     while True:
         # Ask the user to select an option
         answer = questionary.select(
@@ -38,6 +39,8 @@ def tools():
         elif choices.index(answer) == 2:
             UrlEmailPassDIR()
         elif choices.index(answer) == 3:
+            moveToOtherPassDB()
+        elif choices.index(answer) == 4:
             print("Goodbye")
             break
         
@@ -137,6 +140,21 @@ def UrlEmailPassDIR():
             else:
                 # If no exception was raised, print the result
                 print(str(filepath) + ' processed successfully')
+                
+def moveToOtherPassDB():
+    """
+    Runs the moveToOtherPassDB.sh script with the given input file and output file
+    
+    The user is asked for an input file and an output file. The moveToOtherPassDB.sh script is then run with the given input and output files.
+    
+    :return: None
+    """
+    # Ask the user for an input file
+    inputFile = str(input("Input directory path: "))
+    # Ask the user for an output file
+    outputFile = str(input("Output directory path: "))
+    # Run the moveToOtherPassDB.sh script with the given input and output files
+    runSript(MOVE_TO_OTHER_PASS_DB_PATH, inputFile, outputFile)
 
 
 def RemoveDuplicatesAlreadySorted():

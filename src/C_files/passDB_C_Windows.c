@@ -8,31 +8,67 @@
 #define MAX_LINE_LEN 4096
 #define MAX_WORDS 512
 
-// Utility: lowercase first 3 chars of string, alphanumeric only
+// Utility: lowercase first 3 chars of string
+/**
+ * @brief Get the first 3 char of a string, lowercased
+ * @param line The string to get the prefix from
+ * @param prefix_out A buffer to store the prefix in
+ */
 void get_prefix(const char *line, char *prefix_out) {
     int i, j = 0;
-    for (i = 0; line[i] && j < 3; i++) {
+    // Iterate over the first three characters of the input string
+    for (i = 0; i < 3 && line[i] != '\0'; i++) {
+        // Check if the character is alphanumeric
         if (isalnum(line[i])) {
+            // Convert to lowercase and store in the output buffer
             prefix_out[j++] = tolower(line[i]);
         }
     }
+    // Null-terminate the output prefix
     prefix_out[j] = '\0';
 }
 
 // Utility: trim newline and trailing spaces
+/**
+ * @brief Trim newline and trailing spaces from a string
+ * @param line The string to trim
+ */
 void trim_line(char *line) {
     size_t len = strlen(line);
+    // Iterate backwards over the string until we find a non-space
     while (len && (line[len - 1] == '\n' || line[len - 1] == ' ')) {
+        // Replace the last character with a null-terminator
         line[--len] = '\0';
     }
 }
 
-// Compare function for qsort
+/**
+ * @brief Compare function for qsort
+ * 
+ * This function compares two strings pointed to by the void pointers
+ * and returns an integer indicating their lexicographical order.
+ * 
+ * @param a Pointer to the first string
+ * @param b Pointer to the second string
+ * @return Negative value if the first string is less than the second,
+ *         zero if they are equal, positive if the first is greater.
+ */
 int cmpstr(const void *a, const void *b) {
-    return strcmp(*(char **)a, *(char **)b);
+    // Cast and dereference the void pointers to get the actual strings
+    return strcmp(*(const char **)a, *(const char **)b);
 }
 
 // Process a single file
+/**
+ * @brief Process a single file
+ * 
+ * This function reads a single file line by line, sorts the words in each line,
+ * and writes the sorted lines to a file with a name derived from the first three
+ * characters of the sorted line.
+ * 
+ * @param filepath The path to the input file
+ * @param outdir The directory to write the output files to
+ */
 void process_file(const char *filepath, const char *outdir) {
     FILE *fp = fopen(filepath, "r");
     if (!fp) {
@@ -43,6 +79,7 @@ void process_file(const char *filepath, const char *outdir) {
     char line[MAX_LINE_LEN];
 
     while (fgets(line, sizeof(line), fp)) {
+        // Trim newline and trailing spaces
         trim_line(line);
         if (strlen(line) == 0) continue;
 
@@ -87,9 +124,14 @@ void process_file(const char *filepath, const char *outdir) {
 }
 
 // Make output directory if it doesn't exist
+/**
+ * @brief Ensure that the given path exists as a directory
+ * @param path The path to the directory
+ */
 void ensure_output_dir(const char *path) {
     DWORD ftyp = GetFileAttributesA(path);
     if (ftyp == INVALID_FILE_ATTRIBUTES || !(ftyp & FILE_ATTRIBUTE_DIRECTORY)) {
+        // Create the directory
         CreateDirectoryA(path, NULL);
     }
 }
