@@ -1,6 +1,7 @@
 import src.searchUtils as searchUtils
 import src.sorter as sorter
 import src.searcher as searcher
+import src.tools.tools as tools
 import os
 import questionary
 
@@ -8,7 +9,7 @@ def tui(config):
     if config.get("dynamic_menus") == True:
         welcomeScreen()
 
-        choices = ["Add a combolist", "Search a combolist", "Exit"]
+        choices = ["Add a combolist", "Search a combolist", "Tools", "Exit"]
         if config.get("dynamic_menus") == True:
             answer = questionary.select(
                 choices=choices,
@@ -19,6 +20,8 @@ def tui(config):
         elif (choices.index(answer) == 1):
             searchMenu(config)
         elif (choices.index(answer) == 2):
+            tools.tools()
+        elif (choices.index(answer) == 3):
             print("Goodbye")
             exit()
     else:
