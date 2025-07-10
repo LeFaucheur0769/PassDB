@@ -14,13 +14,5 @@ echo "Sorting files from '$INPUT' into '$OUTPUT'..."
 mkdir -p "$OUTPUT"
 
 # Traverse all files in the input directory
-find "$INPUT" -type f | while IFS= read -r src; do
-    # Calculate destination path
-    dst="$OUTPUT/${src#$INPUT/}"
-
-    # Create destination directory if needed
-    mkdir -p "$(dirname "$dst")"
-
-    # Append content and delete the original file if successful
-    cat "$src" >> "$dst" && rm "$src"
+rsync -av --append --progress --remove-source-files "$INPUT" "$OUTPUT"
 done
