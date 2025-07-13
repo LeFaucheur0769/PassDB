@@ -1,10 +1,16 @@
 # PassDB
 
-##  Description
+## Description
 
 **PassDB** is a Python tool designed to efficiently sort combolists and provide fast, easy retrieval of `email:password` combinations. It's ideal for parsing and managing credential dumps with minimal effort.
 
-##  Installation
+## Recommendations
+
+For optimal performance, we recommend using PassDB on Linux, as file I/O operations tend to be significantly faster compared to Windows.
+Additionally, using a Btrfs-formatted system is advised. Btrfs supports seamless compression with zstd, which helps reduce the database size and improves performance.
+For the best experience, install PassDB on an SSD rather than an HDD, as SSDs handle small file access much more efficiently.
+
+## Installation
 
 ### 1. Clone the repository
 
@@ -28,6 +34,7 @@ source .venv/bin/activate
 ```bash
 pip install -r requirements.txt
 ```
+
 ### 3. Setup
 
 #### Windows
@@ -38,14 +45,14 @@ Should be ready to work however the process of adding files to the database is m
 
 Make sure that the files in the src folder are executable by the stystem or else you will have an error and have to delete the hash_db file before trying again.
 
-##  Getting Started
+## Getting Started
 
 On the first run, PassDB will automatically create the necessary folders and files.
 You can customize these paths and behaviors in the [configuration file](#gear-config).
 
-##  Usage
+## Usage
 
-> *Usage instructions coming soon...*
+> _Usage instructions coming soon..._
 
 ## ⚙ Config
 
@@ -58,8 +65,5 @@ PassDB is highly configurable via the `passdb.yml` file located in the project d
 | `import_location`          | Path from which raw combolists are imported                                                                                         |
 | `export_results_location`  | Directory where search results or exports are saved                                                                                 |
 | `print_result_export_file` | If `true`, results will be printed to the terminal even if they're being exported                                                   |
-|`dynamic_menus`             | If `true`, PassDB will use the interactives menus
+| `dynamic_menus`            | If `true`, PassDB will use the interactives menus                                                                                   |
 | `quiet`                    | If `true`, disables interactivity and only prints results (useful for scripting)                                                    |
-
-
-
