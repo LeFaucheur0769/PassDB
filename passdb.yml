@@ -9,3 +9,7 @@ win_binary: "src/passDB_C_Windows.exe"
 print_result_export_file : false 
 dynamic_menus : true
 quiet : false
+check_if_valid_combolist : true
+nbr_of_check_per_file : 10
+file_to_sort_location: "to_sort/"
+fiel_to_sort_not_txt_files: "to_sort/not_txt/"

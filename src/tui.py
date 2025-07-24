@@ -20,7 +20,7 @@ def tui(config):
         elif (choices.index(answer) == 1):
             searchMenu(config)
         elif (choices.index(answer) == 2):
-            tools.tools()
+            tools.tools(config=config)
         elif (choices.index(answer) == 3):
             print("Goodbye")
             exit()

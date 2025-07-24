@@ -1,6 +1,8 @@
 import hashlib
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import random # used to check random lines in the files 
+import re # Used to check if lines contain a valid combolist
 import logging
 import time
 
@@ -263,18 +265,167 @@ def alpha2fileOptimizedOld(file, importPath, config):
         if config.get("debug"):
             print(f"  ↳ {e}")
             
-# def is_ascii_file(filepath):
-#     try:
-#         with open(filepath, 'r', encoding='ascii') as f:
-#             f.read(4096)  # read part of the file
-#         # If read succeeds with ASCII, no unicode beyond ASCII in the first 4k
-#         return False
-#     except UnicodeDecodeError:
-#         # Decoding with ASCII failed => file contains unicode chars beyond ASCII
-#         return True
-#     except OSError:
-#         # File could not be read — handle as needed, maybe return False
-#         return False
+
+def check_valid_combolist_filetype(config, file):
+    """
+    Check if the given file has a valid file extension
+
+    Args:
+        config (dict): Configuration dictionary containing
+            'nbr_of_check_per_file' key
+        file (str): The path to the file
+
+    Returns:
+        bool: True if the file has a valid extension, False otherwise
+    """
+    valid_extensions = [".txt", ""]  # Allow empty extension
+    if file.lower().endswith(tuple(valid_extensions)):
+        return True
+    else:
+        print(f"\033[91m[ERROR] {file} is not a text file\033[0m")
+        still_process = input(f"Do you still want to process it (y/n) ? ")
+        if still_process.lower() == "y":
+            return True
+        else:
+            return False
+
+def check_if_valid_combolist_format(config, file):
+    """
+    Checks if a file is in a valid combo list format by sampling random lines.
+
+    This function reads random lines from a file and checks if they comply with
+    a specific format, which is determined by a regular expression pattern.
+    The function returns True if at least one valid formatted line is found or
+    if 10 lines are manually confirmed as valid by the user; otherwise, it returns False.
+
+    Args:
+        config (dict): Configuration dictionary containing 'nbr_of_check_per_file' key
+                       and 'debug' flag for debugging output.
+        file (str): The path to the file to be checked.
+
+    Returns:
+        bool: True if the file has a valid combo list format, False otherwise.
+    """
+    try:
+        # Counter for manually confirmed valid lines
+        valid = 0
+
+        # Loop over a specified number of checks
+        for _ in range(config.get("nbr_of_check_per_file")):
+            # Generate a random line number to check
+            random_line = random.randint(1, round((file.size() / 256) / 200))
+            if config.get("debug"):
+                print(f"Random line: {random_line} for file: {file}")
+
+            # Open the file and read the random line
+            with open(file, "r", encoding="utf-8", errors="ignore") as f:
+                line = f.readlines()[random_line]
+
+                # Check if the line matches the expected format
+                if bool(re.match(r"[^:]+:[^:]+", line)):
+                    # If the line matches the expected format, return True
+                    print(f"Returning True for line: {line}")
+                    return True
+                else:
+                    print(f"Returning False for line: {line}")
+                    # Ask the user to manually confirm if the line is an error
+                    error_check = input("Is this an error? (y/n): ")
+                    if error_check.lower() == "y":
+                        valid += 1
+
+        # Return True if 10 lines were manually confirmed as valid
+        return valid == 10
+    except Exception as e:
+        print(f"\033[91m[ERROR] Failed to process {file}\033[0m")
+        if config.get("debug"):
+            print(f"  ↳ {e}")
+        return False
+        
+        
+def check_if_email_first(config, file):
+    """
+    Checks if a given file contains a valid combo list format where the email is first.
+
+    Args:
+        config (dict): Configuration dictionary containing values for `nbr_of_check_per_file` and `debug`.
+        file (str): Path to the file to check.
+
+    Returns:
+        bool: True if the file contains a valid combo list format, False otherwise.
+    """
+    try:
+        # Counter for manually confirmed valid lines
+        valid = 0
+
+        # Loop over a specified number of checks
+        for i in range(config.get("nbr_of_check_per_file")):
+            # Generate a random line number to check
+            random_line = random.randint(1, round((file.size() / 256) / 200))
+            if config.get("debug"):
+                print(f"Random line: {random_line} for file: {file}")
+
+            # Open the file and read the random line
+            with open(file, "r", encoding="utf-8", errors="ignore") as f:
+                line = f.readlines()[random_line]
+
+                # Check if the line matches the expected format
+                if bool(re.match(r"[^:]+:[^:]+", line)):
+                    # If the line matches the expected format, return True
+                    print(f"Returning True for line: {line}")
+                    return True
+                else:
+                    print(f"Returning False for line: {line}")
+                    # Ask the user to manually confirm if the line is an error
+                    error_check = input("Is this an error? (y/n): ")
+                    if error_check.lower() == "y":
+                        valid += 1
+                    else:
+                        None
+
+        # Return True if 10 lines were manually confirmed as valid
+        return valid == 10
+    except Exception as e:
+        print(f"\033[91m[ERROR] Failed to process {file}\033[0m")
+        if config.get("debug"):
+            print(f"  ↳ {e}")
+
+def move_file_to_sort(config, file):
+    """
+    Move a given file to a specified directory
+
+    This function moves a given file to a specified directory. It checks if the
+    directory exists, and creates it if it does not. It then moves the file to the
+    directory. If there is an error, it prints a message and the exception.
+
+    Args:
+        config (dict): A configuration dictionary containing the paths for the
+            database and file to sort directories.
+        file (str): The path to the file to be moved.
+
+    Returns:
+        None
+    """
+    try:
+        # Check if the database directory exists, and create it if it does not
+        # This is done to ensure that the file is moved to a valid location
+        if os.path.exists(config.get("file_to_sort_location")) is False:
+            os.makedirs(config.get("file_to_sort_location"))
+
+        # Move the file to the database directory
+        # This is done to sort the file alphabetically by its first three alphanumeric characters
+        print(f"Moving {file} to {config.get('file_to_sort_location')}")
+        os.rename(file, os.path.join(config.get("file_to_sort_location"), file))
+
+    except Exception as e:
+        # If there is an error, print a message and the exception
+        # This is done to ensure that any errors are logged and the program
+        # does not crash
+        print(f"\033[91m[ERROR] Failed to move {file} to {config.get('file_to_sort_location')}\033[0m")
+        if config.get("debug"):
+            print(f"  ↳ {e}")
+
+    
+
 def sorter(config):
     """
     Sort the files in the import directory by their first three alphanumeric characters
