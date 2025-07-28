@@ -121,7 +121,7 @@ def checkTxtFiles(config, inputPath):
     :param config: The configuration dictionary.
     :return: None
     """
-    if not inputPath: inputPath = input(str(f"Location of the files to check: "))
+    if not inputPath:   inputPath = input(str(f"Location of the files to check: "))
     # Check if all files in the directory are text files
     answer = scan_directory_for_text_files(inputPath)
     if answer == True:
