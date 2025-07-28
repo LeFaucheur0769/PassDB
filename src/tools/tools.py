@@ -42,7 +42,7 @@ def tools(config):
         ).ask()
         # Run the selected tool
         if choices.index(answer) == 0:
-            checkUsableFiles()
+            checkUsableFiles(config)
         elif choices.index(answer) == 1:
             UrlEmailPass()
         elif choices.index(answer) == 2:
@@ -58,6 +58,8 @@ def tools(config):
             break
 
 def checkUsableFiles(config):
+    print(f"Be careful, the full check will remove invalid lines. It will actively remove files or line")
+    print("I highly recommend that you have a backup of your files before running this tool")
     choices = [
         "Do full check",
         "Check if files are usable files",
@@ -78,5 +80,8 @@ def checkUsableFiles(config):
             for dirpath, dirnames, filenames in os.walk(dirPath):
                 for filename in filenames:
                     full_path = os.path.join(dirpath, filename)
-                    fullCheck(full_path)
+                    fullCheck(config, full_path)
+        elif choices.index(answer) == 5:
+            break
+    
     
