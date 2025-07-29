@@ -82,11 +82,13 @@ def checkUsableFiles(config):
                     for filename in filenames:
                         # print(f"Checking {filename}")
                         full_path = os.path.join(dirpath, filename)
-                        fullCheck(config, full_path)
+                        try:
+                            fullCheck(config, full_path)
+                        except Exception as e:
+                            print(e)
             elif choices.index(answer) == 5:
                 break
     except Exception as e:
         print(e)
-        pass
     
     
