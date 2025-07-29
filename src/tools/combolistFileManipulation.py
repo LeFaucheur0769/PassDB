@@ -22,7 +22,10 @@ def fullCheck(config, filePath):
             if checkTxtFiles(config, ImportedfilePath):
                 try:
                     print(f"Moving {ImportedfilePath} to {config.get('import_location')}")
-                    os.rename(ImportedfilePath, os.path.join(config.get("import_location"), os.path.basename(ImportedfilePath)))
+                    try:
+                        os.rename(ImportedfilePath, os.path.join(config.get("import_location"), os.path.basename(ImportedfilePath)))
+                    except Exception as e:
+                        print(e)
                     return True
                 except:
                     return False
@@ -141,7 +144,10 @@ def checkTxtFiles(config, inputPath):
             for file in answer:
                 if not os.path.exists(config.get("fiel_to_sort_not_txt_files")):
                     os.mkdir(config.get("fiel_to_sort_not_txt_files"))
-                os.rename(file, os.path.join(config.get("fiel_to_sort_not_txt_files"), os.path.basename(file)))
+                try:
+                    os.rename(file, os.path.join(config.get("fiel_to_sort_not_txt_files"), os.path.basename(file)))
+                except Exception as e:
+                    print(e)
 
 def scan_directory_for_text_files(input_dir):
     """
@@ -245,7 +251,10 @@ def deleteAdvertisements(config, inputFile):
                     f.close()
                     if not os.path.exists(config.get("file_urlloginpass_dir")):
                         os.makedirs(config.get("file_urlloginpass_dir"))
-                    os.rename(inputFile, os.path.join(config.get("file_urlloginpass_dir"), os.path.basename(inputFile)))
+                    try:
+                        os.rename(inputFile, os.path.join(config.get("file_urlloginpass_dir"), os.path.basename(inputFile)))
+                    except Exception as e:
+                        print(e)
                 if (
                     re.match(r'^[^\s:]+:.+$', line.strip())
                     and not "SHOPPY: https://shoppy.gg/@syco" in line.strip() 
