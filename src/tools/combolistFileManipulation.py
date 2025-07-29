@@ -21,6 +21,7 @@ def fullCheck(config, filePath):
             # Check if valid combolist format
             if checkTxtFiles(config, ImportedfilePath):
                 try:
+                    print(f"Moving {ImportedfilePath} to {config.get('import_location')}")
                     os.rename(ImportedfilePath, os.path.join(config.get("import_location"), os.path.basename(ImportedfilePath)))
                     return True
                 except:
