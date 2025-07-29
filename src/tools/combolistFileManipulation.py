@@ -20,8 +20,11 @@ def fullCheck(config, filePath):
         if deleteAdvertisements(config, ImportedfilePath):
             # Check if valid combolist format
             if checkTxtFiles(config, ImportedfilePath):
-                os.rename(ImportedfilePath, os.path.join(config.get("import_location"), os.path.basename(ImportedfilePath)))
-                return True
+                try:
+                    os.rename(ImportedfilePath, os.path.join(config.get("import_location"), os.path.basename(ImportedfilePath)))
+                    return True
+                except:
+                    return False
             else:
                 print(f"{ImportedfilePath} is not in a valid combo list format")
                 choice = input("Do you want to try to convert it? (y/n): ")
