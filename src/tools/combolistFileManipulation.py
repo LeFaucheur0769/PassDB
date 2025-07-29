@@ -139,6 +139,8 @@ def checkTxtFiles(config, inputPath):
         if move == "y":
             # Move the files
             for file in answer:
+                if not os.path.exists(config.get("fiel_to_sort_not_txt_files")):
+                    os.mkdir(config.get("fiel_to_sort_not_txt_files"))
                 print(f"Moving {file} to {config.get('fiel_to_sort_not_txt_files')}")
                 os.rename(file, os.path.join(config.get("fiel_to_sort_not_txt_files"), os.path.basename(file)))
 
