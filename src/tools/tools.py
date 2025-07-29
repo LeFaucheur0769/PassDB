@@ -80,7 +80,7 @@ def checkUsableFiles(config):
                 dirPath = input(str(f"Location of the files to check: "))
                 for dirpath, dirnames, filenames in os.walk(dirPath):
                     for filename in filenames:
-                        print(f"Checking {filename}")
+                        # print(f"Checking {filename}")
                         full_path = os.path.join(dirpath, filename)
                         fullCheck(config, full_path)
             elif choices.index(answer) == 5:

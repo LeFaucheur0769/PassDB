@@ -21,7 +21,7 @@ def fullCheck(config, filePath):
             # Check if valid combolist format
             if checkTxtFiles(config, ImportedfilePath):
                 try:
-                    print(f"Moving {ImportedfilePath} to {config.get('import_location')}")
+                    # print(f"Moving {ImportedfilePath} to {config.get('import_location')}")
                     try:
                         os.rename(ImportedfilePath, os.path.join(config.get("import_location"), os.path.basename(ImportedfilePath)))
                     except Exception as e:
@@ -30,7 +30,7 @@ def fullCheck(config, filePath):
                 except:
                     return False
             else:
-                print(f"{ImportedfilePath} is not in a valid combo list format")
+                # print(f"{ImportedfilePath} is not in a valid combo list format")
                 choice = input("Do you want to try to convert it? (y/n): ")
                 if choice.lower() == "y":
                     converUsableFormat()
