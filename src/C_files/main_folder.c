@@ -23,26 +23,42 @@ int is_line_empty(const char *str) {
 }
 
 int is_valid_email_password(const char *line) {
-    const char *colon = strchr(line, ':');
-    if (!colon) return 0;
+    const char *separators = ":;,";
+    const char *sep = NULL;
 
-    if (strchr(colon + 1, ':')) return 0;
+    // Find the first valid separator
+    for (const char *s = separators; *s; ++s) {
+        const char *pos = strchr(line, *s);
+        if (pos) {
+            if (sep) return 0; // More than one type of separator found
+            sep = pos;
+        }
+    }
 
-    size_t email_len = colon - line;
+    if (!sep) return 0;  // No valid separator found
+
+    // Check if there's another of the same separator (only one allowed)
+    if (strchr(sep + 1, *sep)) return 0;
+
+    // Get email length
+    size_t email_len = sep - line;
     if (email_len == 0) return 0;
 
+    // Copy and validate email
     char *email = malloc(email_len + 1);
     if (!email) return 0;
 
     strncpy(email, line, email_len);
     email[email_len] = '\0';
 
-    char *at = strchr(email, '@');
-    if (!at || strchr(at + 1, '@')) {
-        free(email);
-        return 0;
-    }
+    // // Must contain exactly one '@'
+    // char *at = strchr(email, '@');
+    // if (!at || strchr(at + 1, '@')) {
+    //     free(email);
+    //     return 0;
+    // }
 
+    // No spaces in email
     for (size_t i = 0; i < email_len; ++i) {
         if (isspace((unsigned char)email[i])) {
             free(email);
@@ -53,6 +69,7 @@ int is_valid_email_password(const char *line) {
     free(email);
     return 1;
 }
+
 
 int process_file(const char *input_path, const char *output_path) {
     FILE *infile = fopen(input_path, "r");
