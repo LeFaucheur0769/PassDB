@@ -73,11 +73,11 @@ def hasher(filename, importPath, config):
             # Check if the hash already exists in the database
             if file_hash in hash_db.read():
                 # Print a message saying that the file was already added to the database
-                print("File already in database")
+                if config.get("debug"): print("File already in database")
                 return True
             else:
                 # Add the hash to the "hash_db.txt" file
-                print("Adding file to database")
+                if config.get("debug"): print("Adding file to database")
                 with open(
                     hash_db_path, "a", encoding="utf-8", errors="ignore"
                 ) as hash_db_append:
