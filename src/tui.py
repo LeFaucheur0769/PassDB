@@ -6,26 +6,27 @@ import os
 import questionary
 
 def tui(config):
-    if config.get("dynamic_menus") == True:
-        welcomeScreen()
-
-        choices = ["Add a combolist", "Search a combolist", "Tools", "Exit"]
+    while True:
         if config.get("dynamic_menus") == True:
-            answer = questionary.select(
-                choices=choices,
-                message="  PassDB> ",
-            ).ask()
-        if (choices.index(answer) == 0):
-            sorter.sorter(config)
-        elif (choices.index(answer) == 1):
-            searchMenu(config)
-        elif (choices.index(answer) == 2):
-            tools.tools(config=config)
-        elif (choices.index(answer) == 3):
-            print("Goodbye")
-            exit()
-    else:
-        tuiOld(config)
+            welcomeScreen()
+
+            choices = ["Add a combolist", "Search a combolist", "Tools", "Exit"]
+            if config.get("dynamic_menus") == True:
+                answer = questionary.select(
+                    choices=choices,
+                    message="  PassDB> ",
+                ).ask()
+            if (choices.index(answer) == 0):
+                sorter.sorter(config)
+            elif (choices.index(answer) == 1):
+                searchMenu(config)
+            elif (choices.index(answer) == 2):
+                tools.tools(config=config)
+            elif (choices.index(answer) == 3):
+                print("Goodbye")
+                exit()
+        else:
+            tuiOld(config)
 
 
 
