@@ -26,39 +26,26 @@ int is_valid_email_password(const char *line) {
     const char *separators = ":;,";
     const char *sep = NULL;
 
-    // Find the first valid separator
     for (const char *s = separators; *s; ++s) {
         const char *pos = strchr(line, *s);
         if (pos) {
-            if (sep) return 0; // More than one type of separator found
+            if (sep) return 0;
             sep = pos;
         }
     }
 
-    if (!sep) return 0;  // No valid separator found
-
-    // Check if there's another of the same separator (only one allowed)
+    if (!sep) return 0;
     if (strchr(sep + 1, *sep)) return 0;
 
-    // Get email length
     size_t email_len = sep - line;
     if (email_len == 0) return 0;
 
-    // Copy and validate email
     char *email = malloc(email_len + 1);
     if (!email) return 0;
 
     strncpy(email, line, email_len);
     email[email_len] = '\0';
 
-    // // Must contain exactly one '@'
-    // char *at = strchr(email, '@');
-    // if (!at || strchr(at + 1, '@')) {
-    //     free(email);
-    //     return 0;
-    // }
-
-    // No spaces in email
     for (size_t i = 0; i < email_len; ++i) {
         if (isspace((unsigned char)email[i])) {
             free(email);
@@ -69,7 +56,6 @@ int is_valid_email_password(const char *line) {
     free(email);
     return 1;
 }
-
 
 int process_file(const char *input_path, const char *output_path) {
     FILE *infile = fopen(input_path, "r");
@@ -104,19 +90,68 @@ int process_file(const char *input_path, const char *output_path) {
 int ensure_directory_exists(const char *path) {
     struct stat st;
     if (stat(path, &st) == 0) {
-        if (S_ISDIR(st.st_mode)) {
-            return 0; // Exists and is directory
-        } else {
-            fprintf(stderr, "%s exists but is not a directory\n", path);
-            return 1;
-        }
+        if (S_ISDIR(st.st_mode)) return 0;
+        fprintf(stderr, "%s exists but is not a directory\n", path);
+        return 1;
     }
-    // Directory does not exist, create it
     if (mkdir(path, 0755) != 0) {
         perror("mkdir failed");
         return 1;
     }
     return 0;
+}
+
+// Recursively traverse and process
+void traverse_and_process(const char *base_input, const char *base_output, const char *relative_path) {
+    char current_path[PATH_MAX_LEN];
+    snprintf(current_path, sizeof(current_path), "%s/%s", base_input, relative_path);
+
+    DIR *dir = opendir(current_path);
+    if (!dir) {
+        perror("opendir failed");
+        return;
+    }
+
+    struct dirent *entry;
+    while ((entry = readdir(dir))) {
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+            continue;
+
+        char rel_path[PATH_MAX_LEN];
+        if (strlen(relative_path) > 0)
+            snprintf(rel_path, sizeof(rel_path), "%s/%s", relative_path, entry->d_name);
+        else
+            snprintf(rel_path, sizeof(rel_path), "%s", entry->d_name);
+
+        char full_input_path[PATH_MAX_LEN];
+        snprintf(full_input_path, sizeof(full_input_path), "%s/%s", base_input, rel_path);
+
+        struct stat st;
+        if (stat(full_input_path, &st) != 0) {
+            perror("stat failed");
+            continue;
+        }
+
+        if (S_ISDIR(st.st_mode)) {
+            traverse_and_process(base_input, base_output, rel_path);
+        } else if (S_ISREG(st.st_mode)) {
+            // Flatten the output file name (replace slashes with double underscores)
+            char flat_name[PATH_MAX_LEN];
+            snprintf(flat_name, sizeof(flat_name), "%s", rel_path);
+            for (char *p = flat_name; *p; ++p)
+                if (*p == '/') *p = '_';
+
+            char output_file_path[PATH_MAX_LEN];
+            snprintf(output_file_path, sizeof(output_file_path), "%s/%s", base_output, flat_name);
+
+            printf("Processing %s -> %s\n", full_input_path, output_file_path);
+            if (process_file(full_input_path, output_file_path) != 0) {
+                fprintf(stderr, "Failed to process file %s\n", full_input_path);
+            }
+        }
+    }
+
+    closedir(dir);
 }
 
 int main(int argc, char *argv[]) {
@@ -128,47 +163,10 @@ int main(int argc, char *argv[]) {
     const char *input_folder = argv[1];
     const char *output_folder = argv[2];
 
-    if (ensure_directory_exists(output_folder) != 0) {
+    if (ensure_directory_exists(output_folder) != 0)
         return 1;
-    }
 
-    DIR *dir = opendir(input_folder);
-    if (!dir) {
-        perror("Failed to open input folder");
-        return 1;
-    }
+    traverse_and_process(input_folder, output_folder, "");
 
-    struct dirent *entry;
-    char input_path[PATH_MAX_LEN];
-    char output_path[PATH_MAX_LEN];
-
-    while ((entry = readdir(dir)) != NULL) {
-        // Skip "." and ".."
-        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
-            continue;
-
-        // Construct full input file path
-        snprintf(input_path, sizeof(input_path), "%s/%s", input_folder, entry->d_name);
-
-        struct stat st;
-        if (stat(input_path, &st) != 0) {
-            perror("stat failed");
-            continue;
-        }
-
-        // Only process regular files
-        if (!S_ISREG(st.st_mode))
-            continue;
-
-        // Construct full output file path
-        snprintf(output_path, sizeof(output_path), "%s/%s", output_folder, entry->d_name);
-
-        printf("Processing %s -> %s\n", input_path, output_path);
-        if (process_file(input_path, output_path) != 0) {
-            fprintf(stderr, "Failed to process file %s\n", input_path);
-        }
-    }
-
-    closedir(dir);
     return 0;
 }
