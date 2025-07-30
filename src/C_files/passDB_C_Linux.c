@@ -49,6 +49,16 @@ void process_file(const char *filepath, const char *outdir) {
 
     while (fgets(line, sizeof(line), fp)) {
         trim_line(line);
+
+        // ✅ Remove leading non-printable or non-ASCII characters
+        int start = 0;
+        while (line[start] && ((unsigned char)line[start] < 32 || (unsigned char)line[start] > 126)) {
+            start++;
+        }
+        if (start > 0) {
+            memmove(line, line + start, strlen(line + start) + 1); // Shift cleaned line
+        }
+
         if (strlen(line) == 0) continue;
 
         // Split into words
@@ -90,6 +100,7 @@ void process_file(const char *filepath, const char *outdir) {
 
     fclose(fp);
 }
+
 
 // Main
 int main(int argc, char *argv[]) {
