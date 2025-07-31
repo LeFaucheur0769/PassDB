@@ -27,6 +27,7 @@ def searchMenu(config):
         SaveOutput(config)
     if choice == "2":
         searcher.searcher(config, None)
+        input("Press enter to continue...")
     if choice == "99":
         tui.tui(config)
         
@@ -95,6 +96,7 @@ def startSearcher(config, outputName):
     outputFile = outputName
     open(config.get("export_results_location") + "/" + outputName, "w").close
     searcher.searcher(config, outputFile)
+    input("Press enter to continue...")
     
     
 def checkIfFileExists(config, outputFile):
