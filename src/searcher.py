@@ -1,6 +1,6 @@
 import os
 import src.tui as tui
-
+import time
 
 def searcher(config, outputFile):
     """
@@ -100,3 +100,5 @@ def searcher(config, outputFile):
         else:
             # print("file ending with .txt not found")
             None
+    time.sleep(2)
+    input("Press enter to continue...")
