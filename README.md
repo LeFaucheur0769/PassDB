@@ -63,7 +63,10 @@ PassDB is highly configurable via the `passdb.yml` file located in the project d
 
 # Torrent
 ## Leaks included
-zeeroq leak
-CY-DATA-2025
-KONAI-2025
-Collection #1
+- [x] zeeroq leak
+- [x] CY-DATA-2025
+- [x] KONAI-2025
+- [x] Collection #1
+- [x] TXT_ALIEN 169-199
+- [ ] PUPARONIA-2025
+- [ ] TXT_ALIEN 200-299
