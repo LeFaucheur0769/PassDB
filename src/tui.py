@@ -57,6 +57,7 @@ def tuiOld(config):
         sorter.sorter(config)
     elif (choice == "2"):
         searchMenu(config)
+        input("Press enter to continue...")
     elif (choice == "99" or choice == "exit" or choice == "Exit" or choice == "EXIT" or choice == "q"):
         print("Goodbye")
         exit()
