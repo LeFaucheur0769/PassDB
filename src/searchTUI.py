@@ -1,6 +1,7 @@
 import src.tui as tui
 import src.searcher as searcher
 import os
+import time
 
 def searchMenu(config):
     """
@@ -26,8 +27,10 @@ def searchMenu(config):
     if choice == "1":
         SaveOutput(config)
     if choice == "2":
-        searcher.searcher(config, None)
+        time.sleep(2)
         input("Press enter to continue...")
+        searcher.searcher(config, None)
+        time.sleep(2)
     if choice == "99":
         tui.tui(config)
         
