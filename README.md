@@ -74,3 +74,6 @@ PassDB is highly configurable via the `passdb.yml` file located in the project d
 - [ ] 17.3 MILLIONS UHQ @RDXCLOUD PVT ULP.txt
 - [ ] 862.504 Lines  Crypto-Money Target Hotmail Combolist.txt
 - [ ] 1.1M CORPS MIXED COMBO.txt
+- [ ] ValidCombo-2025
+- [ ] Cit0day
+- [ ] Naz.api
