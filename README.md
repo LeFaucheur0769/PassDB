@@ -69,5 +69,6 @@ PassDB is highly configurable via the `passdb.yml` file located in the project d
 - [x] Collection #1
 - [x] TXT_ALIEN 169-199
 - [ ] PUPARONIA-2025
-- [ ] TXT_ALIEN 200-299
+- [x] TXT_ALIEN 200-299
+- [x] SYKINGDOM-2025
 - [ ] 17.3 MILLIONS UHQ @RDXCLOUD PVT ULP.txt
