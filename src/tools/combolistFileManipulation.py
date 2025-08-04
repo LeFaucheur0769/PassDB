@@ -5,9 +5,9 @@ import os
 import time
 import re   
 
-URL_EMAIL_PASS_PATH = os.path.abspath("src/tools/bash_script/urlEmailPass.sh")
-DUPLICATE_FINDER_ALREADY_SORTED_PATH = "src/tools/bash_script/DuplicateFinderAlreadySorted.sh"
-MOVE_TO_OTHER_PASS_DB_PATH = os.path.abspath("src/tools/bash_script/appendFILE.sh")
+URL_EMAIL_PASS_PATH = os.path.abspath("src/tools/bash_scripts/urlEmailPass.sh")
+DUPLICATE_FINDER_ALREADY_SORTED_PATH = os.path.abspath("src/tools/bash_scripts/DuplicateFinderAlreadySorted.sh")
+MOVE_TO_OTHER_PASS_DB_PATH = os.path.abspath("src/tools/bash_scripts/appendFILE.sh")
 
 def fullCheck(config, filePath):
     # First check if valid files
