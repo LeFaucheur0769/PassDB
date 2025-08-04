@@ -24,38 +24,41 @@ def tools(config):
 
     :return: None
     """
-    # List of options for the user
-    choices = [
-        "Check if files are usable files",
-        "Url Email Pass",
-        "Check if files are txt files",
-        "Url Email Pass DIR txt only",
-        "Move to other PassDB",
-        "Return to main menu",
-        "Exit",
-    ]
-    while True:
-        # Ask the user to select an option
-        answer = questionary.select(
-            choices=choices,
-            message="  PassDB> ",
-        ).ask()
-        # Run the selected tool
-        if choices.index(answer) == 0:
-            checkUsableFiles(config)
-        elif choices.index(answer) == 1:
-            UrlEmailPass()
-        elif choices.index(answer) == 2:
-            checkTxtFiles(config)
-        elif choices.index(answer) == 3:
-            UrlEmailPassDIR()
-        elif choices.index(answer) == 4:
-            moveToOtherPassDB()
-        elif choices.index(answer) == 5:
-            tui()
-        elif choices.index(answer) == 6:
-            print("Goodbye")
-            break
+    try:
+        # List of options for the user
+        choices = [
+            "Check if files are usable files",
+            "Url Email Pass",
+            "Check if files are txt files",
+            "Url Email Pass DIR txt only",
+            "Move to other PassDB",
+            "Return to main menu",
+            "Exit",
+        ]
+        while True:
+            # Ask the user to select an option
+            answer = questionary.select(
+                choices=choices,
+                message="  PassDB> ",
+            ).ask()
+            # Run the selected tool
+            if choices.index(answer) == 0:
+                checkUsableFiles(config)
+            elif choices.index(answer) == 1:
+                UrlEmailPass()
+            elif choices.index(answer) == 2:
+                checkTxtFiles(config)
+            elif choices.index(answer) == 3:
+                UrlEmailPassDIR()
+            elif choices.index(answer) == 4:
+                moveToOtherPassDB()
+            elif choices.index(answer) == 5:
+                tui()
+            elif choices.index(answer) == 6:
+                print("Goodbye")
+                break
+    except Exception as e:
+        print(e)
 
 def checkUsableFiles(config):
     try:
@@ -88,6 +91,23 @@ def checkUsableFiles(config):
                             print(e)
             elif choices.index(answer) == 5:
                 break
+    except Exception as e:
+        print(e)
+        
+def cleanDBDuplicates(config):
+    try:
+        print("Every files created by PassDB will be checked, sorted and cleaned using sort")
+        print("Be aware that this will take a while")
+        input("Press enter to continue")
+        dirPath = config.get("db_location")
+        for dirpath, dirnames, filenames in os.walk(dirPath):
+            for filename in filenames:
+                # print(f"Checking {filename}")
+                full_path = os.path.join(dirpath, filename)
+                try:
+                    RemoveDuplicatesAlreadySorted(full_path)
+                except Exception as e:
+                    print(e)
     except Exception as e:
         print(e)
     

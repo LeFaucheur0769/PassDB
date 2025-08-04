@@ -6,7 +6,4 @@ if [ "$#" -ne 1 ]; then
 fi
 
 INPUT="$1"
-echo "To work the file must be already sorted"
-echo "Checking for duplicate lines in $INPUT"
-uniq "$INPUT" > "$INPUT".tmp
-mv "$INPUT".tmp "$INPUT"
+sort -o "$INPUT" -u "$INPUT"

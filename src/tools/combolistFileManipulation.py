@@ -423,7 +423,7 @@ def moveToOtherPassDB():
     # Run the moveToOtherPassDB.sh script with the given input and output files
     runSript(MOVE_TO_OTHER_PASS_DB_PATH, inputFile, outputFile)
 
-def RemoveDuplicatesAlreadySorted():
+def RemoveDuplicatesAlreadySorted(inputFile):
     """
     Runs the removeDuplicatesAlreadySorted.sh script with the given input file
 
@@ -432,7 +432,6 @@ def RemoveDuplicatesAlreadySorted():
     :return: None
     """
     # Ask the user for an input file
-    inputFile = str(input("Input file path: "))
     # Run the removeDuplicatesAlreadySorted.sh script with the given input file
     runSript(DUPLICATE_FINDER_ALREADY_SORTED_PATH, inputFile)
 

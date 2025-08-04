@@ -10,7 +10,7 @@ def tui(config):
         if config.get("dynamic_menus") == True:
             welcomeScreen()
 
-            choices = ["Add a combolist", "Search a combolist", "Tools", "Exit"]
+            choices = ["Add a combolist", "Search a combolist", "Tools", "Clean duplicates" , "Exit"]
             if config.get("dynamic_menus") == True:
                 answer = questionary.select(
                     choices=choices,
@@ -23,6 +23,8 @@ def tui(config):
             elif (choices.index(answer) == 2):
                 tools.tools(config=config)
             elif (choices.index(answer) == 3):
+                tools.cleanDBDuplicates(config)
+            elif (choices.index(answer) == 4):
                 print("Goodbye")
                 exit()
         else:
