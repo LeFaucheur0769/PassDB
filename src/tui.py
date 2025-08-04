@@ -202,5 +202,5 @@ def welcomeScreen ():
     print("░░         ░   ▒   ░  ░  ░  ░  ░  ░   ░ ░  ░  ░    ░ ")
     print("               ░  ░      ░        ░     ░     ░      ")
     print("\t\t\t\t\t")
-    print("        Welcome to PassDB - By LeFaucheur0769        ")
+    print("        Welcome to PassDB - By GrimReaper        ")
     print("\t\t\t\t\t")
