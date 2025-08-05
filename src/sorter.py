@@ -52,16 +52,27 @@ def hasher(filename, importPath, config):
     Returns:
         bool: True if the file was already in the database, False if it was added.
     """
-    # Construct the full path to the file
-    file_path = os.path.join(importPath, filename)
+    try:
+        # Construct the full path to the file
+        file_path = os.path.join(importPath, filename)
 
-    # Open the file and read its contents
-    with open(file_path, encoding="utf-8", errors="ignore") as file2open:
-        contents = file2open.read()
+        # Open the file and read its contents
+        with open(file_path, "rb") as file2open:
+            # Initialize the MD5 hash object
+            hasher = hashlib.md5()
+            # Read the file contents in chunks and update the hash object
+            while chunk := file2open.read(1024 * 8):
+                hasher.update(chunk)
+
         # Calculate the MD5 hash of the file contents
-        file_hash = hashlib.md5(contents.encode()).hexdigest()
+        file_hash = hasher.hexdigest()
+
         if config.get("debug"):
+            # Print the hash if debugging is enabled
             print(file_hash)
+    except Exception as e:
+        print(f"Error hashing file {filename}: {e}")
+        return
 
     # Path to the hash database file
     # hash_db_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "output", "hash_db.txt")
@@ -73,11 +84,13 @@ def hasher(filename, importPath, config):
             # Check if the hash already exists in the database
             if file_hash in hash_db.read():
                 # Print a message saying that the file was already added to the database
-                if config.get("debug"): print("File already in database")
+                if config.get("debug"):
+                    print("File already in database")
                 return True
             else:
                 # Add the hash to the "hash_db.txt" file
-                if config.get("debug"): print("Adding file to database")
+                if config.get("debug"):
+                    print("Adding file to database")
                 with open(
                     hash_db_path, "a", encoding="utf-8", errors="ignore"
                 ) as hash_db_append:
