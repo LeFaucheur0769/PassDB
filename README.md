@@ -78,3 +78,4 @@ PassDB is highly configurable via the `passdb.yml` file located in the project d
 - [ ] Cit0day
 - [x] Naz.api
 - [x] qCloudCombo-2025
+- [x] lastfm_good.txt
