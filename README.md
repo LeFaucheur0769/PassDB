@@ -76,4 +76,4 @@ PassDB is highly configurable via the `passdb.yml` file located in the project d
 - [x] 1.1M CORPS MIXED COMBO.txt
 - [ ] ValidCombo-2025
 - [ ] Cit0day
-- [ ] Naz.api
+- [x] Naz.api
