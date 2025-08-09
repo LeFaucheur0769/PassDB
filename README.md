@@ -84,5 +84,5 @@ PassDB is highly configurable via the `passdb.yml` file located in the project d
 - [ ] Collection #2
 - [ ] Collection #3
 - [ ] Collection #4
-- [ ] Collection #5
+- [x] Collection #5
 - [ ] Permiblanc.com
