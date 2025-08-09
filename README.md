@@ -81,3 +81,8 @@ PassDB is highly configurable via the `passdb.yml` file located in the project d
 - [x] qCloudCombo-2025
 - [x] lastfm_good.txt
 - [ ] Not SOCRadar
+- [ ] Collection #2
+- [ ] Collection #3
+- [ ] Collection #4
+- [ ] Collection #5
+- [ ] Permiblanc.com
