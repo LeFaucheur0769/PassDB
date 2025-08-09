@@ -68,7 +68,7 @@ PassDB is highly configurable via the `passdb.yml` file located in the project d
 - [x] KONAI-2025
 - [x] Collection #1
 - [x] TXT_ALIEN 169-199
-- [ ] PUPARONIA-2025
+- [x] PUPARONIA-2025
 - [x] TXT_ALIEN 200-299
 - [x] SYKINGDOM-2025
 - [x] 17.3 MILLIONS UHQ @RDXCLOUD PVT ULP.txt
@@ -80,3 +80,4 @@ PassDB is highly configurable via the `passdb.yml` file located in the project d
 - [x] lastfm_good.txt
 - [x] qCloudCombo-2025
 - [x] lastfm_good.txt
+- [ ] Not SOCRadar
