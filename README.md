@@ -83,6 +83,6 @@ PassDB is highly configurable via the `passdb.yml` file located in the project d
 - [ ] Not SOCRadar
 - [ ] Collection #2
 - [ ] Collection #3
-- [ ] Collection #4
+- [x] Collection #4
 - [x] Collection #5
 - [ ] Permiblanc.com
