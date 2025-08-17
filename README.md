@@ -88,3 +88,4 @@ PassDB is highly configurable via the `passdb.yml` file located in the project d
 - [ ] Permiblanc.com
 - [x] Wattpad.com 5kk.txt
 - [x]  100K USA#1 .txt
+- [ ]  7.3m\ linkedin.com.txt
