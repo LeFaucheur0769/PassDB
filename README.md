@@ -90,3 +90,4 @@ PassDB is highly configurable via the `passdb.yml` file located in the project d
 - [x]  100K USA#1 .txt
 - [ ]  7.3m\ linkedin.com.txt
 - [x]  1337-crew_members.txt.sorted
+- [x]  adobe_email_hashed.txt
