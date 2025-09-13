@@ -92,3 +92,7 @@ PassDB is highly configurable via the `passdb.yml` file located in the project d
 - [x]  1337-crew_members.txt.sorted
 - [x]  adobe_email_hashed.txt
 - [x]  permi-blanc-list jadid_split_45
+- [ ]  search_results_ameli.fr.txt
+- [ ]  search_results_cfspart-idp.impots.gouv.fr.txt
+- [ ]  search_results_connect.caf.fr.txt
+- [ ]  search_results_login.orange.fr.txt
