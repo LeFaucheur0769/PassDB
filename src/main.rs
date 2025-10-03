@@ -5,7 +5,7 @@ use clap::Parser;
 #[command(version, about, long_about = None)]
 struct Args {
     /// Location of the config file
-    #[arg(short, long)]
+    #[arg(short, long, default_value = "passdb.yml")]
     config: String,
 
     /// Launch PassDB in intercative mod
@@ -29,16 +29,24 @@ struct Args {
     email: String,
 
     /// Specify an import directory
-    #[arg(long)]
+    #[arg(long, default_value = "import/")]
     import: String,
 
     /// Specify an output file
     #[arg(short, long)]
-    output: String,
+    output: Option<String>,
 }
 
 fn main() {
-    let args = Args::parse();
+    let mut args = Args::parse();
 
-    println!("Hello {}!", args.config);
+    if args.output.is_none() {
+        args.output = Some(format!("{}.txt", args.email));
+    }
+    println!("Email {}", args.email);
+    if let Some(output) = &args.output {
+        println!("Output file {}", output);
+    } else {
+        println!("No output file");
+    }
 }
