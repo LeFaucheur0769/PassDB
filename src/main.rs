@@ -1,4 +1,7 @@
+mod tui;
+
 use clap::Parser;
+use ratatui;
 
 /// Simple program to greet a person
 #[derive(Parser, Debug)]
@@ -43,6 +46,7 @@ fn main() {
     if args.output.is_none() {
         args.output = Some(format!("{}.txt", args.email));
     }
+    tui::tui();
     println!("Email {}", args.email);
     if let Some(output) = &args.output {
         println!("Output file {}", output);
