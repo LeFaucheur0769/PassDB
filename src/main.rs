@@ -1,4 +1,10 @@
+// Import the mods
+
+mod search;
+mod sorter;
 mod tui;
+
+// Import clap to use arguments with PassDB
 
 use clap::Parser;
 
