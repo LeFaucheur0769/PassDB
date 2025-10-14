@@ -1,7 +1,6 @@
 mod tui;
 
 use clap::Parser;
-use ratatui;
 
 /// Simple program to greet a person
 #[derive(Parser, Debug)]

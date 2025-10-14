@@ -2,10 +2,11 @@ use color_eyre::Result;
 use ratatui::{
     self, Terminal,
     crossterm::event::{self, Event, KeyCode},
+    layout::{Constraint, Direction, Layout},
     prelude::*,
-    widgets::{Block, Borders, List, ListItem, ListState},
+    widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
 };
-use std::io;
+use std::{fmt::Alignment, io};
 
 pub fn tui() -> color_eyre::Result<()> {
     color_eyre::install()?;
@@ -24,13 +25,44 @@ fn passdb_ui<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
         "Exit",
     ];
 
+    let logo = r#"
+                                                     
+ ██▓███   ▄▄▄        ██████   ██████ ▓█████▄  ▄▄▄▄   
+▓██░  ██▒▒████▄    ▒██    ▒ ▒██    ▒ ▒██▀ ██▌▓█████▄ 
+▓██░ ██▓▒▒██  ▀█▄  ░ ▓██▄   ░ ▓██▄   ░██   █▌▒██▒ ▄██
+▒██▄█▓▒ ▒░██▄▄▄▄██   ▒   ██▒  ▒   ██▒░▓█▄   ▌▒██░█▀  
+▒██▒ ░  ░ ▓█   ▓██▒▒██████▒▒▒██████▒▒░▒████▓ ░▓█  ▀█▓
+▒▓▒░ ░  ░ ▒▒   ▓▒█░▒ ▒▓▒ ▒ ░▒ ▒▓▒ ▒ ░ ▒▒▓  ▒ ░▒▓███▀▒
+░▒ ░       ▒   ▒▒ ░░ ░▒  ░ ░░ ░▒  ░ ░ ░ ▒  ▒ ▒░▒   ░ 
+░░         ░   ▒   ░  ░  ░  ░  ░  ░   ░ ░  ░  ░    ░ 
+               ░  ░      ░        ░     ░     ░      
+
+        Welcome to PassDB - By GrimReaper        
+"#;
+
     let mut state = ListState::default();
     state.select(Some(0));
+    let logo_height = logo.lines().count() as u16 + 2;
 
     loop {
         terminal
             .draw(|frame| {
+                // defining the windows size and defining the chunks used by the different part of
+                // the tui
                 let area = frame.area();
+                let chunks = Layout::default()
+                    .direction(Direction::Vertical)
+                    .margin(1)
+                    .constraints([Constraint::Length(logo_height), Constraint::Min(0)])
+                    .split(area);
+
+                // Render the logo
+                let logo_widget = Paragraph::new(logo)
+                    .alignment(ratatui::layout::Alignment::Left)
+                    .block(Block::default().borders(Borders::NONE));
+                frame.render_widget(logo_widget, chunks[0]);
+
+                // Render the menu
                 let items: Vec<ListItem> = menu_items
                     .iter()
                     .map(|m| ListItem::new(m.to_string()))
@@ -41,7 +73,7 @@ fn passdb_ui<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
                     .highlight_style(Style::default().fg(Color::Yellow))
                     .highlight_symbol(">> ");
 
-                frame.render_stateful_widget(list, area, &mut state);
+                frame.render_stateful_widget(list, chunks[1], &mut state);
             })
             .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("{e}")))?;
 
