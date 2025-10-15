@@ -53,21 +53,6 @@ fn main() {
     }
     let menu = tui::tui();
 
-    // Launch the right submenu for the right seletcted submenu
-    match menu {
-        Ok(selection) => match selection.as_str() {
-            "Add a combolist" => println!("Add a combolist"),
-            "Search a combolist" => println!("Search a combolist"),
-            "Tools" => println!("Tools"),
-            "Clean duplicates" => println!("Clean duplicates"),
-            _other => std::process::exit(1),
-        },
-        Err(e) => {
-            eprint!("Menu failed: {}", e);
-            std::process::exit(1);
-        }
-    }
-
     println!("Email {}", args.email);
     if let Some(output) = &args.output {
         println!("Output file {}", output);

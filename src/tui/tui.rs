@@ -8,24 +8,7 @@ use ratatui::{
 };
 use std::io;
 
-pub fn tui() -> color_eyre::Result<(String)> {
-    color_eyre::install()?;
-    let mut terminal = ratatui::init();
-    let passdb = passdb_ui(&mut terminal)?;
-    ratatui::restore();
-    Ok(passdb.to_string())
-}
-
-fn passdb_ui<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<&str> {
-    let menu_items = vec![
-        "Add a combolist",
-        "Search a combolist",
-        "Tools",
-        "Clean duplicates",
-        "Exit",
-    ];
-
-    let logo = r#"
+const LOGO: &str = r#"
                                                      
  ██▓███   ▄▄▄        ██████   ██████ ▓█████▄  ▄▄▄▄   
 ▓██░  ██▒▒████▄    ▒██    ▒ ▒██    ▒ ▒██▀ ██▌▓█████▄ 
@@ -40,9 +23,34 @@ fn passdb_ui<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<&str> {
         Welcome to PassDB - By GrimReaper        
 "#;
 
+pub fn tui() -> color_eyre::Result<()> {
+    color_eyre::install()?;
+    let mut terminal = ratatui::init();
+    let passdb = passdb_ui(&mut terminal)?;
+    ratatui::restore();
+    // Launch the right submenu for the right seletcted submenu
+    match passdb {
+        "Add a combolist" => println!("Add a combolist"),
+        "Search a combolist" => println!("Search a combolist"),
+        "Tools" => println!("Tools"),
+        "Clean duplicates" => println!("Clean duplicates"),
+        _other => std::process::exit(1),
+    }
+    Ok(())
+}
+
+fn passdb_ui<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<&str> {
+    let menu_items = vec![
+        "Add a combolist",
+        "Search a combolist",
+        "Tools",
+        "Clean duplicates",
+        "Exit",
+    ];
+
     let mut state = ListState::default();
     state.select(Some(0));
-    let logo_height = logo.lines().count() as u16 + 2;
+    let logo_height = LOGO.lines().count() as u16 + 2;
 
     loop {
         terminal
@@ -57,7 +65,7 @@ fn passdb_ui<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<&str> {
                     .split(area);
 
                 // Render the logo
-                let logo_widget = Paragraph::new(logo)
+                let logo_widget = Paragraph::new(LOGO)
                     .alignment(ratatui::layout::Alignment::Left)
                     .block(Block::default().borders(Borders::NONE));
                 frame.render_widget(logo_widget, chunks[0]);
@@ -110,4 +118,14 @@ fn passdb_ui<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<&str> {
     }
 
     Ok("exit")
+}
+
+fn add_combolist_ui() {
+    // Add the combolist to the database ui
+
+    let menu_combo = vec![
+        "Print the output to the terminal",
+        "Save the output to a file",
+        "Exit",
+    ];
 }
