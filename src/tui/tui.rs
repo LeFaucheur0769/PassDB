@@ -1,8 +1,8 @@
-use color_eyre::Result;
 use ratatui::{
     self, Terminal,
     crossterm::event::{self, Event, KeyCode},
     layout::{Constraint, Direction, Layout},
+    macros::ratatui_core::widgets,
     prelude::*,
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
 };
@@ -27,20 +27,24 @@ pub fn tui() -> color_eyre::Result<()> {
     color_eyre::install()?;
     let mut terminal = ratatui::init();
     let passdb = passdb_ui(&mut terminal)?;
-    ratatui::restore();
     // Launch the right submenu for the right seletcted submenu
     match passdb {
-        "Add a combolist" => println!("Add a combolist"),
+        "Add a combolist" => {
+            //terminal.clear()?;
+            let _ = add_combolist_ui(&mut terminal);
+        }
         "Search a combolist" => println!("Search a combolist"),
         "Tools" => println!("Tools"),
         "Clean duplicates" => println!("Clean duplicates"),
-        _other => std::process::exit(1),
+        "Exit" => std::process::exit(0),
+        _ => eprintln!("Unknown option: {passdb}"),
     }
+    ratatui::restore();
     Ok(())
 }
 
 fn passdb_ui<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<&str> {
-    let menu_items = vec![
+    let menu_items = [
         "Add a combolist",
         "Search a combolist",
         "Tools",
@@ -88,23 +92,108 @@ fn passdb_ui<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<&str> {
         if let Event::Key(key) = event::read()? {
             match key.code {
                 KeyCode::Char('q') | KeyCode::Esc => break,
+
                 KeyCode::Down => {
                     let i = match state.selected() {
-                        Some(i) if i < menu_items.len() => i + 1,
-                        _ => menu_items.len() + 1,
+                        Some(i) if i + 1 < menu_items.len() => i + 1,
+                        _ => 0, // wrap back to top
+                    };
+                    state.select(Some(i));
+                }
+
+                KeyCode::Up => {
+                    let i = match state.selected() {
+                        Some(i) if i > 0 => i - 1,
+                        _ => menu_items.len() - 1, // wrap to bottom
+                    };
+                    state.select(Some(i));
+                }
+
+                KeyCode::Enter => {
+                    if let Some(i) = state.selected() {
+                        let selected = menu_items[i];
+                        if selected == "Exit" {
+                            break;
+                        } else {
+                            return Ok(selected);
+                        }
+                    }
+                }
+
+                _ => {}
+            }
+        }
+    }
+    Ok("exit")
+}
+
+fn add_combolist_ui<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<&str> {
+    // Add the combolist to the database ui
+
+    let menu_combo = [
+        "Print the output to the terminal",
+        "Save the output to a file",
+        "Exit",
+    ];
+
+    // Set the other variables
+
+    let mut state = ListState::default();
+    state.select(Some(0));
+    let logo_height = LOGO.lines().count() as u16 + 2;
+
+    loop {
+        terminal
+            .draw(|frame| {
+                let area = frame.area();
+                let chunks = Layout::default()
+                    .direction(Direction::Vertical)
+                    .constraints([Constraint::Length(logo_height), Constraint::Min(0)])
+                    .margin(1)
+                    .split(area);
+
+                // Render the logo
+                let logo = Paragraph::new(LOGO)
+                    .alignment(ratatui::layout::Alignment::Left)
+                    .block(Block::default().borders(Borders::NONE));
+                frame.render_widget(logo, chunks[0]);
+
+                // Render the menu
+                let items: Vec<ListItem> = menu_combo
+                    .iter()
+                    .map(|m| ListItem::new(m.to_string()))
+                    .collect();
+
+                let menu = List::new(items)
+                    .block(ratatui::widgets::Block::default().borders(Borders::ALL))
+                    .highlight_style(
+                        ratatui::style::Style::default().fg(ratatui::style::Color::Yellow),
+                    )
+                    .highlight_symbol(">> ");
+
+                frame.render_stateful_widget(menu, chunks[1], &mut state);
+            })
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("{e}")))?;
+        if let Event::Key(key) = event::read()? {
+            match key.code {
+                KeyCode::Char('q') | KeyCode::Esc => break,
+                KeyCode::Down => {
+                    let i = match state.selected() {
+                        Some(i) if i + 1 < menu_combo.len() => i + 1,
+                        _ => 0, // wrap back to top
                     };
                     state.select(Some(i));
                 }
                 KeyCode::Up => {
                     let i = match state.selected() {
                         Some(i) if i > 0 => i - 1,
-                        _ => menu_items.len() - 1,
+                        _ => menu_combo.len() - 1, // wrap to bottom
                     };
                     state.select(Some(i));
                 }
                 KeyCode::Enter => {
                     if let Some(i) = state.selected() {
-                        let selected = menu_items[i];
+                        let selected = menu_combo[i];
                         if selected == "Exit" {
                             break;
                         } else {
@@ -116,16 +205,5 @@ fn passdb_ui<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<&str> {
             }
         }
     }
-
     Ok("exit")
-}
-
-fn add_combolist_ui() {
-    // Add the combolist to the database ui
-
-    let menu_combo = vec![
-        "Print the output to the terminal",
-        "Save the output to a file",
-        "Exit",
-    ];
 }
