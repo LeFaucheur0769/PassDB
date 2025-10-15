@@ -6,17 +6,17 @@ use ratatui::{
     prelude::*,
     widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
 };
-use std::{fmt::Alignment, io};
+use std::io;
 
-pub fn tui() -> color_eyre::Result<()> {
+pub fn tui() -> color_eyre::Result<(String)> {
     color_eyre::install()?;
     let mut terminal = ratatui::init();
-    let result = passdb_ui(&mut terminal);
+    let passdb = passdb_ui(&mut terminal)?;
     ratatui::restore();
-    Ok(())
+    Ok(passdb.to_string())
 }
 
-fn passdb_ui<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
+fn passdb_ui<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<&str> {
     let menu_items = vec![
         "Add a combolist",
         "Search a combolist",
@@ -100,7 +100,7 @@ fn passdb_ui<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
                         if selected == "Exit" {
                             break;
                         } else {
-                            println!("Selected: {}", selected);
+                            return Ok(selected);
                         }
                     }
                 }
@@ -109,36 +109,5 @@ fn passdb_ui<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
         }
     }
 
-    Ok(())
-}
-
-pub fn print_logo() -> Result<(), Box<dyn std::error::Error>> {
-    ratatui::run(|terminal| {
-        loop {
-            terminal.draw(|frame| {
-                let logo = r#"
-                                                     
- ██▓███   ▄▄▄        ██████   ██████ ▓█████▄  ▄▄▄▄   
-▓██░  ██▒▒████▄    ▒██    ▒ ▒██    ▒ ▒██▀ ██▌▓█████▄ 
-▓██░ ██▓▒▒██  ▀█▄  ░ ▓██▄   ░ ▓██▄   ░██   █▌▒██▒ ▄██
-▒██▄█▓▒ ▒░██▄▄▄▄██   ▒   ██▒  ▒   ██▒░▓█▄   ▌▒██░█▀  
-▒██▒ ░  ░ ▓█   ▓██▒▒██████▒▒▒██████▒▒░▒████▓ ░▓█  ▀█▓
-▒▓▒░ ░  ░ ▒▒   ▓▒█░▒ ▒▓▒ ▒ ░▒ ▒▓▒ ▒ ░ ▒▒▓  ▒ ░▒▓███▀▒
-░▒ ░       ▒   ▒▒ ░░ ░▒  ░ ░░ ░▒  ░ ░ ░ ▒  ▒ ▒░▒   ░ 
-░░         ░   ▒   ░  ░  ░  ░  ░  ░   ░ ░  ░  ░    ░ 
-               ░  ░      ░        ░     ░     ░      
-
-        Welcome to PassDB - By GrimReaper        
-"#;
-                frame.render_widget(
-                    ratatui::widgets::Paragraph::new(logo)
-                        .alignment(ratatui::layout::Alignment::Left),
-                    frame.area(),
-                );
-            })?;
-            if crossterm::event::read()?.is_key_press() {
-                break Ok(());
-            }
-        }
-    })
+    Ok("exit")
 }
