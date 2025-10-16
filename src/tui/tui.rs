@@ -1,13 +1,17 @@
+use crossterm::event::KeyEvent;
 use ratatui::{
     self, Terminal,
     crossterm::event::{self, Event, KeyCode},
     layout::{Constraint, Direction, Layout},
-    macros::ratatui_core::widgets,
     prelude::*,
-    widgets::{Block, Borders, List, ListItem, ListState, Paragraph},
+    style::palette::tailwind,
+    widgets::{Block, Borders, Gauge, List, ListItem, ListState, Paragraph},
 };
 use std::io;
 
+use crate::sorter::sorter;
+
+const GAUGE1_COLOR: Color = tailwind::RED.c800;
 const LOGO: &str = r#"
                                                      
  ██▓███   ▄▄▄        ██████   ██████ ▓█████▄  ▄▄▄▄   
@@ -30,10 +34,14 @@ pub fn tui() -> color_eyre::Result<()> {
     // Launch the right submenu for the right seletcted submenu
     match passdb {
         "Add a combolist" => {
-            //terminal.clear()?;
-            let _ = add_combolist_ui(&mut terminal);
+            ratatui::restore();
+            let _ = sorter()?;
+            ratatui::init();
         }
-        "Search a combolist" => println!("Search a combolist"),
+        "Search a combolist" => {
+            //terminal.clear()?;
+            let _ = search_combolist_ui(&mut terminal);
+        }
         "Tools" => println!("Tools"),
         "Clean duplicates" => println!("Clean duplicates"),
         "Exit" => std::process::exit(0),
@@ -127,7 +135,7 @@ fn passdb_ui<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<&str> {
     Ok("exit")
 }
 
-fn add_combolist_ui<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<&str> {
+fn search_combolist_ui<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<&str> {
     // Add the combolist to the database ui
 
     let menu_combo = [
@@ -205,5 +213,42 @@ fn add_combolist_ui<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<&str> 
             }
         }
     }
+    Ok("exit")
+}
+
+// crate gauges that fills while the hashes are being processed
+// create a second gauge that fills the more files are processed
+fn add_combolist<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<&str> {
+    let mut state = ListState::default();
+    state.select(Some(0));
+    let logo_height = LOGO.lines().count() as u16 + 2;
+    let file_name = "temp";
+    loop {
+        terminal
+            .draw(|frame| {
+                let area = frame.area();
+                if area.height > logo_height + 15 {
+                    let chunks = Layout::default()
+                        .constraints([Constraint::Length(logo_height), Constraint::Min(0)])
+                        .direction(layout::Direction::Vertical)
+                        .margin(1)
+                        .split(area);
+                } else {
+                    let chunks = Layout::default()
+                        .constraints([Constraint::Min(1)])
+                        .direction(layout::Direction::Vertical)
+                        .margin(1)
+                        .split(area);
+                }
+                let process = Gauge::default()
+                    .block(Block::default().title(file_name).borders(Borders::ALL))
+                    .gauge_style(Style::default().fg(Color::Green));
+            })
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("{e}")))?;
+        if true {
+            break;
+        }
+    }
+
     Ok("exit")
 }
