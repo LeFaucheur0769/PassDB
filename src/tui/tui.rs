@@ -1,4 +1,7 @@
+use crate::sorter::sorter;
+use color_eyre::owo_colors::OwoColorize;
 use crossterm::event::KeyEvent;
+use glob;
 use ratatui::{
     self, Terminal,
     crossterm::event::{self, Event, KeyCode},
@@ -7,9 +10,7 @@ use ratatui::{
     style::palette::tailwind,
     widgets::{Block, Borders, Gauge, List, ListItem, ListState, Paragraph},
 };
-use std::io;
-
-use crate::sorter::sorter;
+use std::{fs, io, path, time::Duration};
 
 const GAUGE1_COLOR: Color = tailwind::RED.c800;
 const LOGO: &str = r#"
@@ -34,9 +35,9 @@ pub fn tui() -> color_eyre::Result<()> {
     // Launch the right submenu for the right seletcted submenu
     match passdb {
         "Add a combolist" => {
-            ratatui::restore();
-            let _ = sorter()?;
-            ratatui::init();
+            //ratatui::restore();
+            let _ = add_combolist(&mut terminal);
+            //ratatui::init();
         }
         "Search a combolist" => {
             //terminal.clear()?;
@@ -222,33 +223,95 @@ fn add_combolist<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<&str> {
     let mut state = ListState::default();
     state.select(Some(0));
     let logo_height = LOGO.lines().count() as u16 + 2;
-    let file_name = "temp";
-    loop {
-        terminal
-            .draw(|frame| {
-                let area = frame.area();
-                if area.height > logo_height + 15 {
-                    let chunks = Layout::default()
-                        .constraints([Constraint::Length(logo_height), Constraint::Min(0)])
-                        .direction(layout::Direction::Vertical)
-                        .margin(1)
-                        .split(area);
-                } else {
-                    let chunks = Layout::default()
+    // let directory = fs::read_dir("tmp").unwrap();
+    //let old_files: Vec<path::PathBuf> = vec![path::PathBuf::from("tmp"),path::PathBuf::from("test2"),path::PathBuf::from("test3"),];
+    let files: Vec<path::PathBuf> = glob::glob("/home/grimreaper/Desktop/DEV/**/*.md")
+        .expect("Failed to read glob patern")
+        .filter_map(Result::ok)
+        .collect();
+    let mut progress_files_processed = 0.0;
+    for (i, file_name) in files.iter().enumerate() {
+        if i > 30 {
+            break; // just when testing to not stuck the app
+        }
+        loop {
+            terminal
+                .draw(|frame| {
+                    let area = frame.area();
+                    let mut chunks = Layout::default()
                         .constraints([Constraint::Min(1)])
                         .direction(layout::Direction::Vertical)
                         .margin(1)
                         .split(area);
+                    if area.height > logo_height + 15 {
+                        chunks = Layout::default()
+                            .constraints([Constraint::Length(logo_height), Constraint::Min(0)])
+                            .direction(layout::Direction::Vertical)
+                            .margin(1)
+                            .split(area);
+                    }
+
+                    let process = Gauge::default()
+                        .block(
+                            Block::default()
+                                .title(file_name.to_str().unwrap_or("Invalid UTF-8"))
+                                .borders(Borders::ALL),
+                        )
+                        .gauge_style(Style::default().fg(Color::Green))
+                        .ratio(progress_files_processed);
+                    let total_process = Gauge::default()
+                        .block(
+                            Block::default()
+                                .title("Total processed files")
+                                .borders(Borders::ALL),
+                        )
+                        .gauge_style(Style::default().fg(Color::Blue))
+                        .ratio(i as f64 / files.iter().count() as f64)
+                        .label(format!("{}/{}", i, files.iter().count()));
+
+                    frame.render_widget(process, chunks[0]);
+                    frame.render_widget(total_process, chunks[1]);
+                })
+                .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("{e}")))?;
+            if let Event::Key(key) = event::read()? {
+                match key.code {
+                    KeyCode::Char('q') | KeyCode::Esc => break,
+
+                    // Debug to manipulate the gauges
+                    KeyCode::Right => {
+                        if progress_files_processed < 0.99 {
+                            progress_files_processed += 0.01;
+                        } else {
+                            progress_files_processed = 1.0;
+                        }
+                    }
+                    KeyCode::Left => {
+                        if progress_files_processed > 0.01 {
+                            progress_files_processed -= 0.01;
+                        } else {
+                            progress_files_processed = 0.0;
+                        }
+                    }
+
+                    _ => {}
                 }
-                let process = Gauge::default()
-                    .block(Block::default().title(file_name).borders(Borders::ALL))
-                    .gauge_style(Style::default().fg(Color::Green));
-            })
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("{e}")))?;
-        if true {
-            break;
+            }
+
+            // go to the next file if gauge or ui if the gauge is full
+            if progress_files_processed == 1.0 {
+                progress_files_processed = 0.0;
+                break;
+            }
         }
     }
-
     Ok("exit")
+}
+
+fn update(
+    number_of_files: &mut u64,
+    current_file_number: &mut u64,
+    current_file_bytes_percent: &mut f64,
+) {
+    let progress_files_processed = *number_of_files / *current_file_number;
+    let current_file_percent = current_file_bytes_percent;
 }
