@@ -239,7 +239,7 @@ impl AddCombolist {
             progress_current: 0.0,
             progress_total: 0.0,
             logs: vec![],
-            logo_height: logo_height,
+            logo_height,
         }
     }
 
