@@ -266,7 +266,7 @@ impl AddCombolist {
     fn draw(&self, frame: &mut Frame) {
         let area = frame.area();
         let mut chunks = Layout::default()
-            .constraints([Constraint::Min(1)])
+            .constraints([Constraint::Min(1), Constraint::Min(1)])
             .direction(layout::Direction::Vertical)
             .margin(1)
             .split(area);
@@ -278,7 +278,11 @@ impl AddCombolist {
 
         if area.height > self.logo_height + 15 {
             chunks = Layout::default()
-                .constraints([Constraint::Length(self.logo_height), Constraint::Min(0)])
+                .constraints([
+                    Constraint::Length(self.logo_height),
+                    Constraint::Min(0),
+                    Constraint::Min(0),
+                ])
                 .direction(layout::Direction::Vertical)
                 .margin(1)
                 .split(area);
@@ -301,9 +305,14 @@ impl AddCombolist {
             .label(format!("{}/{}", self.current_index, self.files.len()));
 
         // The logs of what is beeing processed //
+        let logs = Paragraph::new(self.logs.join("\n"))
+            .block(Block::default().borders(Borders::ALL))
+            .scroll((self.logs.iter().count() as u16, 5))
+            .wrap(ratatui::widgets::Wrap { trim: true });
 
         frame.render_widget(process, chunks[0]);
         frame.render_widget(total_process, chunks[1]);
+        frame.render_widget(logs, chunks[2]);
     }
 }
 
@@ -312,33 +321,41 @@ impl AddCombolist {
 fn add_combolist<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<&str> {
     let mut state = ListState::default();
     state.select(Some(0));
-    let mut progress_files_processed = 0.0;
+
     let mut add_combo = AddCombolist::new();
-    loop {
-        terminal
-            .draw(|frame| add_combo.draw(frame))
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("{e}")))?;
-        if let Event::Key(key) = event::read()? {
-            match key.code {
-                KeyCode::Char('q') | KeyCode::Esc => break,
-
-                // Debug to manipulate the gauges
-                KeyCode::Right => {
-                    if add_combo.progress_total == 1.0 {
-                        break;
-                    }
-                    add_combo.next_file();
-                }
-                KeyCode::Left => {
-                    if progress_files_processed > 0.01 {
-                        progress_files_processed -= 0.01;
-                    } else {
-                        progress_files_processed = 0.0;
-                    }
-                }
-
-                _ => {}
+    for i in add_combo.files.clone() {
+        let mut hashfile = sorter::HashFile::new(i.to_str().unwrap())?;
+        let path_str = i.to_str().unwrap();
+        let mut progress_files_processed = 0.0;
+        loop {
+            if hashfile.update()? {
+                progress_files_processed = hashfile.progress();
+            } else {
+                let hash = hashfile.finalize()?;
+                add_combo.progress_current = progress_files_processed;
+                add_combo.logs.push(format!(
+                    "Finished processing file {path_str} with hash {hash}"
+                ));
+                break;
             }
+            add_combo.progress_current = progress_files_processed;
+            {
+                terminal
+                    .draw(|frame| add_combo.draw(frame))
+                    .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("{e}")))?;
+            }
+            // check for quit or manual control
+            if event::poll(std::time::Duration::from_millis(10))? {
+                if let Event::Key(key) = event::read()? {
+                    match key.code {
+                        KeyCode::Char('q') | KeyCode::Esc => return Ok("quit"),
+                        _ => {}
+                    }
+                }
+            }
+        }
+        if add_combo.current_index + 1 < add_combo.files.len() {
+            add_combo.next_file();
         }
     }
     Ok("exit")

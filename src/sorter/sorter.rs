@@ -1,17 +1,7 @@
-use clap::builder::Str;
-use crossterm::cursor::MoveToNextLine;
 use md5::{self, Digest};
-use ratatui::buffer;
-use std::fs::{self, File, metadata};
+use std::fs::{self, File};
 use std::io;
-use std::io::Read;
-use std::path::PathBuf;
-
-pub fn sorter() -> std::io::Result<String> {
-    let hash = hash_file("/home/grimreaper/Desktop/steam.desktop")?;
-    println!("{}", hash);
-    Ok(hash)
-}
+use std::io::{BufRead, BufReader, Read, Write};
 
 pub struct HashFile {
     file: File,
@@ -26,7 +16,7 @@ impl HashFile {
         let total_size = std::fs::metadata(path)?.len();
 
         Ok(HashFile {
-            file: File::open(path)?,
+            file,
             hasher: md5::Md5::new(),
             total_size,
             bytes_read: 0,
@@ -47,26 +37,36 @@ impl HashFile {
         self.bytes_read as f64 / self.total_size as f64
     }
 
-    pub fn finalize(&self) -> String {
+    pub fn finalize(&self) -> io::Result<String> {
         let cloned = self.hasher.clone();
         let result = cloned.finalize();
-        format!("{:x}", result)
-    }
-}
+        let path = "/home/grimreaper/Desktop/hashdb";
 
-fn hash_file(path: &str) -> io::Result<String> {
-    let mut file = File::open(path)?;
-    let mut hasher = md5::Md5::new();
-    let mut buffer = [0u8; 8192];
+        let file = File::open(path);
+        let mut exist = false;
 
-    loop {
-        let bytes_read = file.read(&mut buffer)?;
-        if bytes_read == 0 {
-            break;
+        if let Ok(file) = file {
+            let reader = BufReader::new(file);
+            for line in reader.lines() {
+                if let Ok(l) = line {
+                    if l.trim() == format!("{:x}", result) {
+                        exist = true;
+                        break;
+                    }
+                }
+            }
         }
-        hasher.update(&buffer[..bytes_read]);
-    }
 
-    let result = hasher.finalize();
-    Ok(format!("{:x}", result))
+        if !exist {
+            let mut hashdb = fs::OpenOptions::new()
+                .create(true)
+                .write(true)
+                .append(true)
+                .open(path)?;
+
+            hashdb.write_all(format!("{:x}\n", result).as_bytes())?;
+        }
+
+        Ok(format!("{:x}", result))
+    }
 }
