@@ -7,19 +7,16 @@ mod tui;
 // Import clap to use arguments with PassDB
 
 use std::{
-    any::Any,
-    fmt::format,
-    fs::{self, OpenOptions},
-    io::{self, read_to_string},
+    fs::{self, create_dir},
     path::Path,
     vec,
 };
 
-use clap::{Parser, builder::Str};
+use clap::{Parser, builder::Str, error::Result};
 
 // Imports
 
-use yaml_rust2::{self, YamlEmitter, emitter};
+use yaml_rust2::{self};
 
 /// Simple program to greet a person
 #[derive(Parser, Debug)]
@@ -126,76 +123,51 @@ impl PassDB {
         println!("{:#?}", self.debug);
     }
 
-    fn run(&mut self) {
-        let _menu = tui::tui();
+    fn run_menu(&mut self) {
+        let _menu = tui::tui(
+            self.import_location.clone(),
+            self.db_location.clone(),
+            self.file_to_sort_location.clone(),
+        );
     }
 
-    fn check_if_valid_application_dir(&mut self) -> Result<bool, String> {
-        let mut exists = true;
-
-        if Path::new(&self.db_location).is_dir() {
-            self.logs
-                .push(format!("Directory {} exists", self.db_location));
+    fn ensure_dir(&mut self, path: &str) -> Result<bool, String> {
+        if Path::new(path).is_dir() {
+            self.logs.push(format!("Directory {} exists", path));
+            Ok(true)
         } else {
             self.logs
-                .push(format!("Directory {} does not exist", self.db_location));
-            exists = false;
+                .push(format!("Directory {} missing, creating...", path));
+            std::fs::create_dir_all(path)
+                .map_err(|e| format!("Failed to create {}: {}", path, e))?;
+            Ok(true)
+        }
+    }
+
+    fn check_if_valid_or_create_dir(&mut self) -> Result<bool, String> {
+        let paths = [
+            self.db_location.clone(),
+            self.export_results_location.clone(),
+            self.import_location.clone(),
+            self.file_to_sort_location.clone(),
+        ];
+
+        for path in paths.iter() {
+            self.ensure_dir(path)?;
         }
 
-        if Path::new(&self.export_results_location).is_dir() {
-            self.logs
-                .push(format!("Directory {} exists", self.export_results_location));
-        } else {
-            self.logs.push(format!(
-                "Directory {} does not exists",
-                self.export_results_location
-            ));
-            exists = false;
-        }
+        Ok(true)
+    }
 
-        if Path::new(&self.import_location).is_dir() {
-            self.logs
-                .push(format!("Directory {} exists", self.import_location));
-        } else {
-            self.logs.push(format!(
-                "Directory {} does not exists",
-                self.import_location
-            ));
-            exists = false;
-        }
-
-        if Path::new(&self.file_to_sort_location).is_dir() {
-            self.logs
-                .push(format!("Directory {} exists", self.file_to_sort_location));
-        } else {
-            self.logs.push(format!(
-                "Directory {} does not exists",
-                self.file_to_sort_location,
-            ));
-            exists = false;
-        }
-
-        if exists { Ok(true) } else { Ok(false) }
+    fn run(&mut self) -> Result<(), String> {
+        //self.check_if_valid_or_create_dir()?; // propagates Err
+        self.run_menu();
+        Ok(())
     }
 }
 
-fn main() {
+fn main() -> Result<(), String> {
     let mut passdb = PassDB::new();
-    passdb.run();
-}
-
-fn main1() {
-    let mut args = Args::parse();
-
-    if args.output.is_none() {
-        args.output = Some(format!("{}.txt", args.email));
-    }
-    let menu = tui::tui();
-
-    println!("Email {}", args.email);
-    if let Some(output) = &args.output {
-        println!("Output file {}", output);
-    } else {
-        println!("No output file");
-    }
+    passdb.run()?;
+    Ok(())
 }

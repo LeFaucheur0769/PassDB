@@ -28,7 +28,7 @@ const LOGO: &str = r#"
         Welcome to PassDB - By GrimReaper        
 "#;
 
-pub fn tui() -> color_eyre::Result<()> {
+pub fn tui(import_dir: String, output_dir: String, to_sort_dir: String) -> color_eyre::Result<()> {
     color_eyre::install()?;
     let mut terminal = ratatui::init();
     let passdb = passdb_ui(&mut terminal)?;
