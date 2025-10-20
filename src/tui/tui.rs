@@ -345,12 +345,12 @@ fn add_combolist<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<&str> {
                     .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("{e}")))?;
             }
             // check for quit or manual control
-            if event::poll(std::time::Duration::from_millis(10))? {
-                if let Event::Key(key) = event::read()? {
-                    match key.code {
-                        KeyCode::Char('q') | KeyCode::Esc => return Ok("quit"),
-                        _ => {}
-                    }
+            if event::poll(std::time::Duration::from_millis(10))?
+                && let Event::Key(key) = event::read()?
+            {
+                match key.code {
+                    KeyCode::Char('q') | KeyCode::Esc => return Ok("quit"),
+                    _ => {}
                 }
             }
         }

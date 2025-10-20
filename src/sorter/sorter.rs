@@ -48,11 +48,11 @@ impl HashFile {
         if let Ok(file) = file {
             let reader = BufReader::new(file);
             for line in reader.lines() {
-                if let Ok(l) = line {
-                    if l.trim() == format!("{:x}", result) {
-                        exist = true;
-                        break;
-                    }
+                if let Ok(l) = line
+                    && l.trim() == format!("{:x}", result)
+                {
+                    exist = true;
+                    break;
                 }
             }
         }
@@ -60,7 +60,6 @@ impl HashFile {
         if !exist {
             let mut hashdb = fs::OpenOptions::new()
                 .create(true)
-                .write(true)
                 .append(true)
                 .open(path)?;
 
