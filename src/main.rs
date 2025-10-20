@@ -7,12 +7,12 @@ mod tui;
 // Import clap to use arguments with PassDB
 
 use std::{
-    fs::{self, create_dir},
+    fs::{self},
     path::Path,
     vec,
 };
 
-use clap::{Parser, builder::Str, error::Result};
+use clap::{Parser, error::Result};
 
 // Imports
 

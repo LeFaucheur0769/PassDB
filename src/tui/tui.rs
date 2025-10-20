@@ -1,4 +1,4 @@
-use crate::{sorter::sorter, tui};
+use crate::sorter::sorter;
 use glob;
 use ratatui::{
     self,
@@ -359,4 +359,43 @@ fn add_combolist<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<&str> {
         }
     }
     Ok("exit")
+}
+
+struct SearchCombolist {
+    db_dir: String,
+    export_dir: String,
+    options: Vec<String>,
+    logo_height: u16,
+}
+
+impl SearchCombolist {
+    fn new(db_dir: String, export_dir: String) -> Self {
+        SearchCombolist {
+            db_dir,
+            export_dir,
+            options: vec![
+                "Print the output to the terminal".to_string(),
+                "Save the output to a file".to_string(),
+                "Exit".to_string(),
+            ],
+            logo_height: LOGO.lines().count() as u16 + 2,
+        }
+    }
+    fn draw(&self, frame: &mut Frame) {
+        let area = frame.area();
+        let chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .margin(1)
+            .constraints([Constraint::Min(self.logo_height), Constraint::Min(1)])
+            .split(area);
+    }
+}
+
+struct Search {
+    file_size: u64,
+    bytes_read: u64,
+    progress_current: f64,
+    progress_total: f64,
+    logs: Vec<String>,
+    logo_height: u16,
 }
