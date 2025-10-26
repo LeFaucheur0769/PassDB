@@ -1,16 +1,25 @@
-use crate::sorter::sorter;
+use crate::{search, sorter::sorter};
+use clap::builder::Str;
+use color_eyre::owo_colors::OwoColorize;
+use crossterm::{
+    event::{self, Event, KeyCode},
+    terminal,
+};
 use glob;
 use ratatui::{
     self,
     Frame,
     Terminal,
-    crossterm::event::{self, Event, KeyCode},
     layout::{Constraint, Direction, Layout},
     prelude::*,
     //    style::palette::tailwind,
     widgets::{Block, Borders, Gauge, List, ListItem, ListState, Paragraph},
 };
-use std::{io, path};
+use std::{
+    io::{self, Stdout},
+    path,
+};
+use tui_input::{self, Input, backend::crossterm::EventHandler};
 
 //const GAUGE1_COLOR: Color = tailwind::RED.c800;
 const LOGO: &str = r#"
@@ -28,9 +37,15 @@ const LOGO: &str = r#"
         Welcome to PassDB - By GrimReaper        
 "#;
 
-pub fn tui(import_dir: String, output_dir: String, to_sort_dir: String) -> color_eyre::Result<()> {
+pub fn tui(
+    import_dir: String,
+    output_dir: String,
+    to_sort_dir: String,
+    export_dir: String,
+) -> color_eyre::Result<()> {
     color_eyre::install()?;
     let mut terminal = ratatui::init();
+    //let _ = search(&mut terminal);
     let passdb = passdb_ui(&mut terminal)?;
     // Launch the right submenu for the right seletcted submenu
     match passdb {
@@ -41,7 +56,17 @@ pub fn tui(import_dir: String, output_dir: String, to_sort_dir: String) -> color
         }
         "Search a combolist" => {
             //terminal.clear()?;
-            let _ = search_combolist_ui(&mut terminal);
+            let search_combo = search_combolist_ui(&mut terminal, output_dir, export_dir);
+            match search_combo.as_str() {
+                "Print the output to the terminal" => {
+                    let search = search(&mut terminal);
+                }
+                "Save the output to a file" => {
+                    println!("Print the output to the term");
+                }
+                "Exit" => println!("Exiting"),
+                _ => eprintln!("Unknown option: {search_combo}"),
+            }
         }
         "Tools" => println!("Tools"),
         "Clean duplicates" => println!("Clean duplicates"),
@@ -136,7 +161,17 @@ fn passdb_ui<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<&str> {
     Ok("exit")
 }
 
-fn search_combolist_ui<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<&str> {
+fn search_combolist_ui<B: Backend>(
+    terminal: &mut Terminal<B>,
+    db_dir: String,
+    export_dir: String,
+) -> String {
+    let mut searchCombo = SearchCombolist::new(db_dir, export_dir);
+    searchCombo.run(terminal);
+    return searchCombo.selected_option;
+}
+
+fn search_combolist_ui1<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<&str> {
     // Add the combolist to the database ui
 
     let menu_combo = [
@@ -364,38 +399,218 @@ fn add_combolist<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<&str> {
 struct SearchCombolist {
     db_dir: String,
     export_dir: String,
-    options: Vec<String>,
+    state: ListState,
     logo_height: u16,
+    selected_option: String,
 }
 
 impl SearchCombolist {
     fn new(db_dir: String, export_dir: String) -> Self {
+        let mut state = ListState::default();
+        state.select(Some(1));
         SearchCombolist {
             db_dir,
             export_dir,
-            options: vec![
-                "Print the output to the terminal".to_string(),
-                "Save the output to a file".to_string(),
-                "Exit".to_string(),
-            ],
+            state,
             logo_height: LOGO.lines().count() as u16 + 2,
+            selected_option: "Exit".to_string(),
         }
     }
-    fn draw(&self, frame: &mut Frame) {
+
+    fn update_state(&mut self, state: usize) {
+        self.state.select(Some(state));
+    }
+
+    fn draw(&mut self, frame: &mut Frame) {
+        let options = [
+            "Print the output to the terminal",
+            "Save the output to a file",
+            "Exit",
+        ];
+
+        //self.state.select(Some(0));
         let area = frame.area();
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .margin(1)
-            .constraints([Constraint::Min(self.logo_height), Constraint::Min(1)])
+            .constraints([Constraint::Length(self.logo_height), Constraint::Min(1)])
             .split(area);
+
+        let logo = Paragraph::new(LOGO)
+            .alignment(ratatui::layout::Alignment::Left)
+            .block(Block::default().borders(Borders::NONE));
+
+        let items: Vec<ListItem> = options
+            .iter()
+            .map(|m| ListItem::new(m.to_string()))
+            .collect();
+
+        let menu = List::new(items)
+            .block(Block::default().borders(Borders::ALL))
+            .highlight_symbol(">> ")
+            .highlight_style(style::Style::default().fg(ratatui::style::Color::Yellow));
+        frame.render_widget(logo, chunks[0]);
+        frame.render_stateful_widget(menu, chunks[1], &mut self.state);
+    }
+
+    fn run<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> io::Result<&str> {
+        let options = [
+            "Print the output to the terminal",
+            "Save the output to a file",
+            "Exit",
+        ];
+
+        loop {
+            terminal
+                .draw(|frame| self.draw(frame))
+                .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("{e}")))?;
+
+            if event::poll(std::time::Duration::from_millis(10))?
+                && let Event::Key(key) = event::read()?
+            {
+                match key.code {
+                    KeyCode::Char('q') | KeyCode::Esc => break,
+                    KeyCode::Down => {
+                        let i = match self.state.selected() {
+                            Some(i) if i + 1 < options.len() => i + 1,
+                            _ => 0,
+                        };
+                        self.update_state(i);
+                    }
+                    KeyCode::Up => {
+                        let i = match self.state.selected() {
+                            Some(i) if i > 0 => i - 1,
+                            _ => options.len() - 1,
+                        };
+                        self.update_state(i);
+                    }
+                    KeyCode::Enter => {
+                        if let Some(i) = self.state.selected() {
+                            let selected = options[i];
+                            if selected == "Exit" {
+                                self.selected_option = selected.to_string();
+                                break;
+                            } else {
+                                self.selected_option = selected.to_string();
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        Ok(self.selected_option.as_str())
     }
 }
 
+#[derive(Debug, Default)]
 struct Search {
     file_size: u64,
     bytes_read: u64,
     progress_current: f64,
     progress_total: f64,
     logs: Vec<String>,
-    logo_height: u16,
+    input: Input,
+    input_mode: InputMode,
+    search_output: Vec<String>,
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+enum InputMode {
+    #[default]
+    Normal,
+    Editing,
+}
+
+impl Search {
+    fn run(mut self, terminal: &mut ratatui::DefaultTerminal) -> io::Result<()> {
+        loop {
+            terminal.draw(|frame| self.draw(frame))?;
+
+            let event = crossterm::event::read()?;
+            if let crossterm::event::Event::Key(key) = event {
+                match self.input_mode {
+                    InputMode::Normal => match key.code {
+                        KeyCode::Char('e') => self.start_editing(),
+                        KeyCode::Char('q') => return Ok(()), // exit
+                        _ => {}
+                    },
+                    InputMode::Editing => match key.code {
+                        KeyCode::Enter => self.push_input(),
+                        KeyCode::Esc => self.stop_editing(),
+                        _ => {
+                            self.input.handle_event(&event);
+                        }
+                    },
+                }
+            }
+        }
+    }
+
+    fn start_editing(&mut self) {
+        self.input_mode = InputMode::Editing;
+    }
+
+    fn stop_editing(&mut self) {
+        self.input_mode = InputMode::Normal;
+    }
+
+    fn push_input(&mut self) {
+        //self. = self.input.to_string();
+    }
+
+    fn draw(&mut self, frame: &mut Frame) {
+        let area = frame.area();
+        let input_area = Constraint::Length(3);
+        let logs_area = Constraint::Min(1);
+        let logo_height = LOGO.lines().count() as u16 + 2;
+        let chunks = Layout::default()
+            .constraints([Constraint::Length(logo_height), input_area, logs_area])
+            .direction(Direction::Vertical)
+            .margin(1)
+            .split(area);
+
+        self.render_logo(frame, chunks[0]);
+        self.render(frame, chunks[1]);
+    }
+
+    fn render_logo(&mut self, frame: &mut Frame, area: Rect) {
+        let logo = Paragraph::new(LOGO).block(Block::new().borders(Borders::NONE));
+
+        frame.render_widget(logo, area);
+    }
+
+    fn searched_output(&mut self, frame: &mut Frame, area: Rect) {
+        //let logo =
+        //   Paragraph::new(self.search_email.clone()).block(Block::new().borders(Borders::NONE));
+
+        //frame.render_widget(logo, area);
+    }
+
+    fn render(&self, frame: &mut Frame, area: Rect) {
+        let width = area.width.max(3) - 3;
+        let scroll = self.input.visual_scroll(width as usize);
+        let style = match self.input_mode {
+            InputMode::Normal => Style::default(),
+            InputMode::Editing => Color::Yellow.into(),
+        };
+        let input = Paragraph::new(self.input.value())
+            .style(style)
+            .scroll((0, scroll as u16))
+            .block(Block::bordered().title("Input"));
+
+        frame.render_widget(input, area);
+        if self.input_mode == InputMode::Editing {
+            // Ratatui hides the cursor unless it's explicitly set. Position the  cursor past the
+            // end of the input text and one line down from the border to the input line
+            let x = self.input.visual_cursor().max(scroll) - scroll + 1;
+            frame.set_cursor_position((area.x + x as u16, area.y + 1))
+        }
+    }
+}
+
+fn search(terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result<(), std::io::Error> {
+    let result = Search::default().run(terminal);
+    return result;
 }

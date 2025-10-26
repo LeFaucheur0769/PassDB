@@ -128,6 +128,7 @@ impl PassDB {
             self.import_location.clone(),
             self.db_location.clone(),
             self.file_to_sort_location.clone(),
+            self.export_results_location.clone(),
         );
     }
 
