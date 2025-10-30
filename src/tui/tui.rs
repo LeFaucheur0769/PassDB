@@ -17,7 +17,7 @@ use ratatui::{
 };
 use std::{
     io::{self, Stdout},
-    path,
+    path, result,
 };
 use tui_input::{self, Input, backend::crossterm::EventHandler};
 
@@ -59,7 +59,7 @@ pub fn tui(
             let search_combo = search_combolist_ui(&mut terminal, output_dir, export_dir);
             match search_combo.as_str() {
                 "Print the output to the terminal" => {
-                    let search = search(&mut terminal);
+                    let search = search_input_email(&mut terminal);
                 }
                 "Save the output to a file" => {
                     println!("Print the output to the term");
@@ -505,7 +505,7 @@ impl SearchCombolist {
 }
 
 #[derive(Debug, Default)]
-struct Search {
+struct SearchInputEmail {
     file_size: u64,
     bytes_read: u64,
     progress_current: f64,
@@ -523,7 +523,7 @@ enum InputMode {
     Editing,
 }
 
-impl Search {
+impl SearchInputEmail {
     fn run(mut self, terminal: &mut ratatui::DefaultTerminal) -> io::Result<()> {
         loop {
             terminal.draw(|frame| self.draw(frame))?;
@@ -610,7 +610,29 @@ impl Search {
     }
 }
 
-fn search(terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result<(), std::io::Error> {
-    let result = Search::default().run(terminal);
+fn search_input_email(
+    terminal: &mut Terminal<CrosstermBackend<Stdout>>,
+) -> Result<(), std::io::Error> {
+    let result = SearchInputEmail::default().run(terminal);
     return result;
+}
+
+struct SearchOutput {
+    logo_hight: u16,
+}
+
+impl SearchOutput {
+    fn new() -> Self {
+        SearchOutput {
+            logo_hight: LOGO.lines().count() as u16 + 2,
+        }
+    }
+
+    fn draw<B: Backend>(&mut self, frame: &mut Frame) {
+        let area = frame.area();
+        let logo_area = Constraint::Length(self.logo_hight);
+        let gauge_area = Constraint::Min(0);
+        let result_area = Constraint::Min(0);
+        //let logs_area = "";
+    }
 }
