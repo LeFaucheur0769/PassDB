@@ -492,6 +492,7 @@ impl SearchCombolist {
                                 break;
                             } else {
                                 self.selected_option = selected.to_string();
+                                break;
                             }
                         }
                     }
