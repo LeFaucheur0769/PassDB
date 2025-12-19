@@ -505,6 +505,9 @@ impl SearchCombolist {
     }
 }
 
+// Component used to show the input box where you can specify the email you want to search
+// It also register the input.
+
 #[derive(Debug, Default)]
 struct SearchInputEmail {
     file_size: u64,
@@ -611,6 +614,8 @@ impl SearchInputEmail {
     }
 }
 
+// Function used to execute the Search component and return the email that
+// has been written.
 fn search_input_email(
     terminal: &mut Terminal<CrosstermBackend<Stdout>>,
 ) -> Result<(), std::io::Error> {
@@ -618,13 +623,16 @@ fn search_input_email(
     return result;
 }
 
+// Component that is used to render the current state of the search and the output
 struct SearchOutput {
     logo_hight: u16,
+    email_to_search: String,
 }
 
 impl SearchOutput {
     fn new() -> Self {
         SearchOutput {
+            email_to_search: "test@gmail.com".to_string(),
             logo_hight: LOGO.lines().count() as u16 + 2,
         }
     }

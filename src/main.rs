@@ -12,10 +12,11 @@ use std::{
     vec,
 };
 
-use clap::{Parser, error::Result};
+use clap::{Arg, Parser, error::Result};
 
 // Imports
 
+use md5::digest::consts::True;
 use yaml_rust2::{self};
 
 /// Simple program to greet a person
@@ -132,6 +133,17 @@ impl PassDB {
         );
     }
 
+    fn run_no_menu(&mut self, email: String) -> Result<()> {
+        let mut search = search::search::Searcher::new(
+            self.db_location.clone(),
+            self.export_results_location.clone(),
+            email,
+        );
+
+        search.search()?;
+        Ok(())
+    }
+
     fn ensure_dir(&mut self, path: &str) -> Result<bool, String> {
         if Path::new(path).is_dir() {
             self.logs.push(format!("Directory {} exists", path));
@@ -162,7 +174,13 @@ impl PassDB {
 
     fn run(&mut self) -> Result<(), String> {
         //self.check_if_valid_or_create_dir()?; // propagates Err
-        self.run_menu();
+
+        if Args::parse().interactive {
+            self.run_menu();
+        } else {
+            let email = Args::parse().email;
+            self.run_no_menu(email);
+        }
         Ok(())
     }
 }

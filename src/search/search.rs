@@ -1,13 +1,14 @@
 use std::{
     fs::File,
     io::{BufRead, BufReader, Read, Seek},
+    path::PathBuf,
 };
 
 pub fn search() {
     println!("None");
 }
 
-struct Searcher {
+pub struct Searcher {
     db_dir: String,
     export_dir: String,
     file: File,
@@ -19,13 +20,22 @@ struct Searcher {
 }
 
 impl Searcher {
-    fn new(db_dir: String, export_dir: String, email_to_search: String) -> Self {
+    pub fn new(db_dir: String, export_dir: String, email_to_search: String) -> Self {
         let mut first_3_letters = email_to_search.clone();
+        let export_path = PathBuf::from(std::env::current_dir().unwrap())
+            .join(db_dir.clone())
+            .join("sorted");
         first_3_letters.truncate(3);
+
         Searcher {
-            db_dir,
+            db_dir: export_path.to_string_lossy().to_string(),
             export_dir,
-            file: File::open(format!("{}.txt", first_3_letters)).unwrap(),
+            file: File::open(format!(
+                "{}/{}.txt",
+                export_path.to_string_lossy(),
+                first_3_letters
+            ))
+            .unwrap(),
             output: vec![],
             email_to_search,
             total_bytes: 0,
@@ -34,7 +44,7 @@ impl Searcher {
         }
     }
 
-    fn search(&mut self) -> std::io::Result<bool> {
+    pub fn search(&mut self) -> std::io::Result<bool> {
         self.total_bytes = self.file.metadata()?.len(); // total file size in bytes
         let mut reader = BufReader::new(&self.file);
         let mut nbr_line = 0u64;
@@ -64,12 +74,15 @@ impl Searcher {
         }
 
         self.nbr_line = nbr_line;
+        for i in self.output.clone() {
+            println!("{}", i);
+        }
         Ok(true)
     }
 
-    fn update(&mut self) {}
+    pub fn update(&mut self) {}
 
-    fn progress(&self) -> f64 {
+    pub fn progress(&self) -> f64 {
         self.current_pos / self.total_bytes as f64
     }
 }
