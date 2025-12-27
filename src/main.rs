@@ -12,7 +12,8 @@ use std::{
     vec,
 };
 
-use clap::{Arg, Parser, error::Result};
+use clap::{Arg, Error, Parser, builder::Str, error::Result};
+use color_eyre::eyre::eyre;
 
 // Imports
 
@@ -45,7 +46,7 @@ struct Args {
 
     /// Specify an email address to verify
     #[arg(short, long)]
-    email: String,
+    email: Option<String>,
 
     /// Specify an import directory
     #[arg(long, default_value = "import/")]
@@ -54,6 +55,9 @@ struct Args {
     /// Specify an output file
     #[arg(short, long)]
     output: Option<String>,
+
+    #[arg(short, long)]
+    test: bool,
 }
 
 #[derive(Debug)]
@@ -119,9 +123,16 @@ impl PassDB {
         }
     }
 
-    fn test(&mut self) {
-        println!("{:#?}", self);
-        println!("{:#?}", self.debug);
+    fn test(&mut self) -> color_eyre::Result<()> {
+        color_eyre::install()?;
+        let mut terminal = ratatui::init();
+        //let _ = search(&mut terminal);
+        //println!("{:#?}", self);
+        //println!("{:#?}", self.debug);
+        let mut test = tui::tui::SearchOutput::new();
+        test.run(&mut terminal)?;
+        ratatui::restore();
+        Ok(())
     }
 
     fn run_menu(&mut self) {
@@ -172,20 +183,24 @@ impl PassDB {
         Ok(true)
     }
 
-    fn run(&mut self) -> Result<(), String> {
+    fn run(&mut self) -> color_eyre::Result<()> {
         //self.check_if_valid_or_create_dir()?; // propagates Err
 
         if Args::parse().interactive {
             self.run_menu();
+        } else if Args::parse().test {
+            self.test()?;
         } else {
-            let email = Args::parse().email;
-            self.run_no_menu(email);
+            let email = Args::parse()
+                .email
+                .ok_or_else(|| eyre!("email is required"))?;
+            self.run_no_menu(email)?;
         }
         Ok(())
     }
 }
 
-fn main() -> Result<(), String> {
+fn main() -> color_eyre::Result<()> {
     let mut passdb = PassDB::new();
     passdb.run()?;
     Ok(())

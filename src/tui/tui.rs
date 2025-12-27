@@ -1,19 +1,17 @@
 use crate::{search, sorter::sorter};
 use clap::builder::Str;
-use color_eyre::owo_colors::OwoColorize;
+use color_eyre::owo_colors::{OwoColorize, colors::Yellow};
 use crossterm::{
     event::{self, Event, KeyCode},
     terminal,
 };
 use glob;
 use ratatui::{
-    self,
-    Frame,
-    Terminal,
+    self, Frame, Terminal,
     layout::{Constraint, Direction, Layout},
     prelude::*,
-    //    style::palette::tailwind,
-    widgets::{Block, Borders, Gauge, List, ListItem, ListState, Paragraph},
+    symbols::border,
+    widgets::{Block, Borders, Gauge, List, ListItem, ListState, Paragraph, Wrap},
 };
 use std::{
     io::{self, Stdout},
@@ -169,87 +167,6 @@ fn search_combolist_ui<B: Backend>(
     let mut searchCombo = SearchCombolist::new(db_dir, export_dir);
     searchCombo.run(terminal);
     return searchCombo.selected_option;
-}
-
-fn search_combolist_ui1<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<&str> {
-    // Add the combolist to the database ui
-
-    let menu_combo = [
-        "Print the output to the terminal",
-        "Save the output to a file",
-        "Exit",
-    ];
-
-    // Set the other variables
-
-    let mut state = ListState::default();
-    state.select(Some(0));
-    let logo_height = LOGO.lines().count() as u16 + 2;
-
-    loop {
-        terminal
-            .draw(|frame| {
-                let area = frame.area();
-                let chunks = Layout::default()
-                    .direction(Direction::Vertical)
-                    .constraints([Constraint::Length(logo_height), Constraint::Min(0)])
-                    .margin(1)
-                    .split(area);
-
-                // Render the logo
-                let logo = Paragraph::new(LOGO)
-                    .alignment(ratatui::layout::Alignment::Left)
-                    .block(Block::default().borders(Borders::NONE));
-                frame.render_widget(logo, chunks[0]);
-
-                // Render the menu
-                let items: Vec<ListItem> = menu_combo
-                    .iter()
-                    .map(|m| ListItem::new(m.to_string()))
-                    .collect();
-
-                let menu = List::new(items)
-                    .block(ratatui::widgets::Block::default().borders(Borders::ALL))
-                    .highlight_style(
-                        ratatui::style::Style::default().fg(ratatui::style::Color::Yellow),
-                    )
-                    .highlight_symbol(">> ");
-
-                frame.render_stateful_widget(menu, chunks[1], &mut state);
-            })
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("{e}")))?;
-        if let Event::Key(key) = event::read()? {
-            match key.code {
-                KeyCode::Char('q') | KeyCode::Esc => break,
-                KeyCode::Down => {
-                    let i = match state.selected() {
-                        Some(i) if i + 1 < menu_combo.len() => i + 1,
-                        _ => 0, // wrap back to top
-                    };
-                    state.select(Some(i));
-                }
-                KeyCode::Up => {
-                    let i = match state.selected() {
-                        Some(i) if i > 0 => i - 1,
-                        _ => menu_combo.len() - 1, // wrap to bottom
-                    };
-                    state.select(Some(i));
-                }
-                KeyCode::Enter => {
-                    if let Some(i) = state.selected() {
-                        let selected = menu_combo[i];
-                        if selected == "Exit" {
-                            break;
-                        } else {
-                            return Ok(selected);
-                        }
-                    }
-                }
-                _ => {}
-            }
-        }
-    }
-    Ok("exit")
 }
 
 struct AddCombolist {
@@ -624,24 +541,93 @@ fn search_input_email(
 }
 
 // Component that is used to render the current state of the search and the output
-struct SearchOutput {
+pub struct SearchOutput {
     logo_hight: u16,
     email_to_search: String,
+    results: Vec<String>,
+    scroll_offset: u16,
 }
 
 impl SearchOutput {
-    fn new() -> Self {
+    pub fn new() -> Self {
         SearchOutput {
             email_to_search: "test@gmail.com".to_string(),
             logo_hight: LOGO.lines().count() as u16 + 2,
+            results: vec!["test".to_string(), "tristan".to_string()],
+            scroll_offset: 0,
         }
     }
 
-    fn draw<B: Backend>(&mut self, frame: &mut Frame) {
+    pub fn draw(&mut self, frame: &mut Frame) {
         let area = frame.area();
         let logo_area = Constraint::Length(self.logo_hight);
-        let gauge_area = Constraint::Min(0);
         let result_area = Constraint::Min(0);
         //let logs_area = "";
+
+        let logo = Paragraph::new(LOGO)
+            .alignment(ratatui::layout::Alignment::Left)
+            .block(Block::default().borders(Borders::NONE));
+        let gauge = Gauge::default()
+            .gauge_style(Style::default().fg(Color::Green))
+            .block(
+                Block::default()
+                    .border_set(symbols::border::ROUNDED)
+                    .borders(Borders::ALL),
+            )
+            .ratio(1.0);
+        let results_count = self.results.iter().count() as u16;
+        let results = Paragraph::new(self.results.join("\n"))
+            .left_aligned()
+            .scroll((0, 0))
+            .wrap(Wrap { trim: true })
+            .scroll((self.scroll_offset, 0));
+
+        // Main chunks used for the ui
+        let chunks = Layout::default()
+            .constraints([logo_area, Constraint::Min(0)])
+            .direction(Direction::Vertical)
+            .split(area);
+
+        // Chunks used for the gauge
+        let gauge_chunk = Layout::default()
+            .constraints([Constraint::Length(5), Constraint::Min(0)])
+            .direction(Direction::Vertical)
+            .split(chunks[1]); // Spliting the already split area by using chunks
+
+        // Chunk used for the results
+        let result_chunk = Layout::default()
+            .constraints([Constraint::Min(1)])
+            .direction(Direction::Vertical)
+            .split(gauge_chunk[1]);
+        frame.render_widget(logo, chunks[0]);
+        frame.render_widget(gauge, gauge_chunk[0]);
+        frame.render_widget(results, result_chunk[0]);
+    }
+
+    pub fn run<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> io::Result<()> {
+        loop {
+            terminal
+                .draw(|frame| self.draw(frame))
+                .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("{e}")))?;
+            let event = crossterm::event::read()?;
+            if let crossterm::event::Event::Key(key) = event {
+                match key.code {
+                    KeyCode::Char('q') | KeyCode::Esc => break,
+                    KeyCode::Down => {
+                        // only scroll if there are more lines than the display area
+                        if self.scroll_offset < self.results.len() as u16 {
+                            self.scroll_offset += 1;
+                        }
+                    }
+                    KeyCode::Up => {
+                        if self.scroll_offset > 0 {
+                            self.scroll_offset -= 1;
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+        Ok(())
     }
 }
