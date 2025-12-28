@@ -7,8 +7,10 @@ mod tui;
 // Import clap to use arguments with PassDB
 
 use std::{
+    env,
     fs::{self},
     path::Path,
+    path::PathBuf,
     vec,
 };
 
@@ -60,6 +62,15 @@ struct Args {
     test: bool,
 }
 
+fn get_default_import_dir() -> PathBuf {
+    let exe_dir = env::current_exe()
+        .expect("Failed to get exe path")
+        .parent()
+        .expect("Failed to get exe directory")
+        .to_path_buf();
+    exe_dir.join("import")
+}
+
 #[derive(Debug)]
 struct PassDB {
     debug: bool,
@@ -82,8 +93,16 @@ impl PassDB {
         let config_location = Args::parse().config;
         let read_config =
             fs::read_to_string(&config_location).expect("Failed to read the config location");
-
         let config = yaml_rust2::YamlLoader::load_from_str(&read_config).expect("Invalid YAML");
+
+        // Get either the config path or default, as PathBuf
+        let import_path = config[0]["import_location"]
+            .as_str()
+            .map(PathBuf::from)
+            .unwrap_or_else(get_default_import_dir);
+
+        // Convert to absolute path
+        let import_location = import_path.canonicalize().unwrap_or(import_path); // fallback if folder doesn't exist yet
 
         PassDB {
             debug: config[0]["debug"].as_bool().unwrap(),
@@ -95,10 +114,7 @@ impl PassDB {
                 .as_str()
                 .unwrap_or("export/")
                 .to_string(),
-            import_location: config[0]["import_location"]
-                .as_str()
-                .unwrap_or("import/")
-                .to_string(),
+            import_location: import_location.to_string_lossy().to_string(), // full path
             print_result_export_file: config[0]["print_result_export_file"]
                 .as_bool()
                 .unwrap_or(false),
@@ -122,21 +138,21 @@ impl PassDB {
             logs: vec![],
         }
     }
-
     fn test(&mut self) -> color_eyre::Result<()> {
+        println!("{}", self.import_location);
         color_eyre::install()?;
         let mut terminal = ratatui::init();
         //let _ = search(&mut terminal);
         //println!("{:#?}", self);
         //println!("{:#?}", self.debug);
-        let mut test = tui::tui::SearchOutput::new();
-        test.run(
-            &mut terminal,
-            "test".to_string(),
-            self.db_location.clone(),
-            self.export_results_location.clone(),
-        )?;
-        ratatui::restore();
+        //let mut test = tui::tui::SearchOutput::new();
+        //test.run(
+        //    &mut terminal,
+        //    "test".to_string(),
+        //    self.db_location.clone(),
+        //    self.export_results_location.clone(),
+        //)?;
+        //ratatui::restore();
         Ok(())
     }
 

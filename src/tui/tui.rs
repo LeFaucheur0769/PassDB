@@ -1,6 +1,10 @@
 use crate::{search, sorter::sorter};
 use clap::builder::Str;
-use color_eyre::owo_colors::{OwoColorize, colors::Yellow};
+use color_eyre::owo_colors::{
+    OwoColorize,
+    colors::{Yellow, xterm::DarkPurple},
+};
+use core::time;
 use crossterm::{
     event::{self, Event, KeyCode},
     terminal,
@@ -18,6 +22,8 @@ use std::{
     path,
     process::exit,
     result,
+    thread::sleep,
+    time::Duration,
 };
 use tui_input::{self, Input, backend::crossterm::EventHandler};
 
@@ -52,7 +58,7 @@ pub fn tui(
     match passdb {
         "Add a combolist" => {
             //ratatui::restore();
-            let _ = add_combolist(&mut terminal);
+            let _ = add_combolist(&mut terminal, output_dir, import_dir);
             //ratatui::init();
         }
         "Search a combolist" => {
@@ -184,8 +190,9 @@ struct AddCombolist {
 }
 
 impl AddCombolist {
-    fn new() -> Self {
-        let files: Vec<path::PathBuf> = glob::glob("/home/grimreaper/Desktop/DEV/**/*.md")
+    fn new(import_dir: String) -> Self {
+        let partern = format!("{import_dir}/**/*");
+        let files: Vec<path::PathBuf> = glob::glob(&partern)
             .expect("Failed to read glob patern")
             .filter_map(Result::ok)
             .collect();
@@ -275,44 +282,58 @@ impl AddCombolist {
 
 // crate gauges that fills while the hashes are being processed
 // create a second gauge that fills the more files are processed
-fn add_combolist<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<&str> {
+fn add_combolist<B: Backend>(
+    terminal: &mut Terminal<B>,
+    db_location: String,
+    import_dir: String,
+) -> io::Result<&str> {
     let mut state = ListState::default();
     state.select(Some(0));
 
-    let mut add_combo = AddCombolist::new();
-    for i in add_combo.files.clone() {
-        let mut hashfile = sorter::HashFile::new(i.to_str().unwrap())?;
-        let path_str = i.to_str().unwrap();
-        let mut progress_files_processed = 0.0;
+    let mut add_combo = AddCombolist::new(import_dir.to_string());
+    let mut finished = false;
+
+    while !finished {
+        // process current file
+        let current_file = &add_combo.files[add_combo.current_index];
+        let mut hashfile =
+            sorter::HashFile::new(current_file.to_str().unwrap(), db_location.as_str())?;
+        let mut progress_current_file = 0.0;
+
         loop {
             if hashfile.update()? {
-                progress_files_processed = hashfile.progress();
+                progress_current_file = hashfile.progress();
+                add_combo.progress_current = progress_current_file;
             } else {
                 let hash = hashfile.finalize()?;
-                add_combo.progress_current = progress_files_processed;
                 add_combo.logs.push(format!(
-                    "Finished processing file {path_str} with hash {hash}"
+                    "Finished processing file {:?} with hash {}",
+                    current_file, hash
                 ));
                 break;
             }
-            add_combo.progress_current = progress_files_processed;
-            {
-                terminal
-                    .draw(|frame| add_combo.draw(frame))
-                    .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("{e}")))?;
-            }
-            // check for quit or manual control
+
+            // draw UI
+            terminal.draw(|frame| add_combo.draw(frame));
+
+            // optional: handle quit key
             if event::poll(std::time::Duration::from_millis(10))?
                 && let Event::Key(key) = event::read()?
             {
-                match key.code {
-                    KeyCode::Char('q') | KeyCode::Esc => return Ok("quit"),
-                    _ => {}
+                if key.code == KeyCode::Char('q') || key.code == KeyCode::Esc {
+                    finished = true;
+
+                    break;
                 }
             }
         }
+
+        // move to next file
         if add_combo.current_index + 1 < add_combo.files.len() {
             add_combo.next_file();
+        } else {
+            finished = true; // last file finished
+            sleep(Duration::from_millis(100));
         }
     }
     Ok("exit")
