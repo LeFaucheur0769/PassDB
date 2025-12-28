@@ -602,13 +602,6 @@ impl SearchOutput {
                     .borders(Borders::ALL),
             )
             .ratio(1.0);
-        let results_count = self.results.iter().count() as u16;
-        let results = Paragraph::new(self.results.join("\n"))
-            .left_aligned()
-            .scroll((0, 0))
-            .block(Block::default().borders(Borders::ALL))
-            .wrap(Wrap { trim: true })
-            .scroll((self.scroll_offset, 0));
 
         // Main chunks used for the ui
         let chunks = Layout::default()
@@ -623,13 +616,23 @@ impl SearchOutput {
             .split(chunks[1]); // Spliting the already split area by using chunks
 
         // Chunk used for the results
-        let result_chunk = Layout::default()
-            .constraints([Constraint::Min(1)])
-            .direction(Direction::Vertical)
-            .split(gauge_chunk[1]);
+        let visible_height = gauge_chunk[1].height as usize;
+        let items: Vec<ListItem> = self
+            .results
+            .iter()
+            .skip(self.scroll_offset as usize)
+            .take(visible_height)
+            .map(|line| ListItem::new(line.as_str()))
+            .collect();
+        let results = List::new(items).block(
+            Block::default()
+                .border_set(symbols::border::DOUBLE)
+                .borders(Borders::ALL),
+        );
+
         frame.render_widget(logo, chunks[0]);
         frame.render_widget(gauge, gauge_chunk[0]);
-        frame.render_widget(results, result_chunk[0]);
+        frame.render_widget(results, gauge_chunk[1]);
     }
 
     pub fn run<B: Backend>(

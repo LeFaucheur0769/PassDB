@@ -74,15 +74,19 @@ impl Searcher {
             let file = File::open(file_path)?;
             let mut reader = BufReader::new(file);
             loop {
-                let mut buf = String::new();
-                let bytes_read = reader.read_line(&mut buf)?;
+                let mut buf = Vec::new();
+                let bytes_read = reader.read_until(b'\n', &mut buf)?;
+
                 if bytes_read == 0 {
                     break;
                 }
+
                 self.nbr_line += 1;
 
-                if buf.contains(&self.email_to_search) {
-                    self.output.push(buf.trim_end().to_string());
+                let line = String::from_utf8_lossy(&buf);
+
+                if line.contains(&self.email_to_search) {
+                    self.output.push(line.trim_end().to_string());
                 }
 
                 self.current_pos += bytes_read as f64; // cumulative progress

@@ -12,7 +12,7 @@ use std::{
     vec,
 };
 
-use clap::{Arg, Error, Parser, builder::Str, error::Result};
+use clap::{Arg, CommandFactory, Error, Parser, builder::Str, error::Result};
 use color_eyre::eyre::eyre;
 
 // Imports
@@ -196,19 +196,27 @@ impl PassDB {
     }
 
     fn run(&mut self) -> color_eyre::Result<()> {
-        //self.check_if_valid_or_create_dir()?; // propagates Err
+        let args = Args::parse();
 
-        if Args::parse().interactive {
+        if args.interactive {
             self.run_menu();
-        } else if Args::parse().test {
+            Ok(())
+        } else if args.test {
             self.test()?;
+            Ok(())
         } else {
-            let email = Args::parse()
-                .email
-                .ok_or_else(|| eyre!("email is required"))?;
+            let email = match args.email {
+                Some(email) => email,
+                None => {
+                    Args::command().print_help().unwrap();
+                    println!();
+                    std::process::exit(1);
+                }
+            };
+
             self.run_no_menu(email)?;
+            Ok(())
         }
-        Ok(())
     }
 }
 
