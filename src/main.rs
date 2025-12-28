@@ -139,7 +139,7 @@ impl PassDB {
         }
     }
     fn test(&mut self) -> color_eyre::Result<()> {
-        println!("{}", self.import_location);
+        //println!("{}", self.import_location);
         color_eyre::install()?;
         let mut terminal = ratatui::init();
         //let _ = search(&mut terminal);
@@ -153,6 +153,10 @@ impl PassDB {
         //    self.export_results_location.clone(),
         //)?;
         //ratatui::restore();
+        let sorter_test = sorter::sorter::Sort::new(
+            "/home/grimreaper/Desktop/DEV/Rust/project/PassDB/test.txt".to_string(),
+        );
+        println!("{}", sorter_test.unwrap().sort().unwrap());
         Ok(())
     }
 

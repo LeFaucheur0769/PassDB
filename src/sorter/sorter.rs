@@ -77,15 +77,40 @@ impl HashFile {
 
 pub struct Sort {
     file: File,
+    total_size: u64,
 }
 
 impl Sort {
     pub fn new(path: String) -> color_eyre::Result<Self> {
-        let file = File::open(path)?;
-        Ok(Sort { file })
+        let file = File::open(&path)?;
+        let total_size = std::fs::metadata(&path)?.len(); // get the size of the file
+        Ok(Sort { file, total_size })
     }
 
-    pub fn update() {}
+    pub fn sort(&mut self) -> color_eyre::Result<String> {
+        let reader = BufReader::new(&self.file);
+        let mut vec_first_3 = vec![];
+        for (i, line) in reader.lines().enumerate() {
+            let line_unwrap = line.unwrap().trim().to_string();
+            let mut file_name: String = line_unwrap.clone();
+            file_name.truncate(3);
+            if file_name.is_empty() {
+                continue;
+            }
+
+            file_name.push_str(".txt");
+            vec_first_3.push(file_name.clone());
+
+            // Open the file corresponding to the line
+
+            let mut file_sorted_line = fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(file_name.clone())?;
+            file_sorted_line.write_all(line_unwrap.clone().as_bytes())?;
+        }
+        Ok(vec_first_3.join(", "))
+    }
 
     pub fn progress() -> f64 {
         0.0
