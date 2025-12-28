@@ -130,7 +130,12 @@ impl PassDB {
         //println!("{:#?}", self);
         //println!("{:#?}", self.debug);
         let mut test = tui::tui::SearchOutput::new();
-        test.run(&mut terminal)?;
+        test.run(
+            &mut terminal,
+            "test".to_string(),
+            self.db_location.clone(),
+            self.export_results_location.clone(),
+        )?;
         ratatui::restore();
         Ok(())
     }
@@ -145,13 +150,20 @@ impl PassDB {
     }
 
     fn run_no_menu(&mut self, email: String) -> Result<()> {
-        let mut search = search::search::Searcher::new(
+        let mut search = match search::search::Searcher::new(
             self.db_location.clone(),
             self.export_results_location.clone(),
             email,
-        );
+        ) {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("Failed to initialize search: {e}");
+                return Ok(()); // or return Err(clap::Error::raw(...)) if you want to propagate to clap
+            }
+        };
 
         search.search()?;
+
         Ok(())
     }
 

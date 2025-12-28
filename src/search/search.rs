@@ -11,7 +11,7 @@ pub fn search() {
 pub struct Searcher {
     db_dir: String,
     export_dir: String,
-    file: File,
+    files: Vec<PathBuf>, // <- change here
     output: Vec<String>,
     email_to_search: String,
     total_bytes: u64,
@@ -20,63 +20,75 @@ pub struct Searcher {
 }
 
 impl Searcher {
-    pub fn new(db_dir: String, export_dir: String, email_to_search: String) -> Self {
-        let mut first_3_letters = email_to_search.clone();
+    pub fn new(
+        db_dir: String,
+        export_dir: String,
+        email_to_search: String,
+    ) -> Result<Self, color_eyre::Report> {
+        let mut prefix = email_to_search.clone();
+        if prefix.len() > 3 {
+            prefix.truncate(3); // optional, max 3 chars
+        }
+
         let export_path = PathBuf::from(std::env::current_dir().unwrap())
             .join(db_dir.clone())
             .join("sorted");
-        first_3_letters.truncate(3);
 
-        Searcher {
+        // Match all files that start with the prefix
+        let mut files = Vec::new();
+        for entry in std::fs::read_dir(&export_path)? {
+            let entry = entry?;
+            let file_name = entry.file_name();
+            let file_name = file_name.to_string_lossy();
+            if file_name.starts_with(&prefix) && file_name.ends_with(".txt") {
+                files.push(entry.path());
+            }
+        }
+
+        if files.is_empty() {
+            return Err(color_eyre::eyre::eyre!(
+                "No files found with prefix '{}'",
+                prefix
+            ));
+        }
+
+        Ok(Searcher {
             db_dir: export_path.to_string_lossy().to_string(),
             export_dir,
-            file: File::open(format!(
-                "{}/{}.txt",
-                export_path.to_string_lossy(),
-                first_3_letters
-            ))
-            .unwrap(),
+            files,
             output: vec![],
             email_to_search,
             total_bytes: 0,
             nbr_line: 0,
             current_pos: 0.0,
-        }
+        })
     }
 
     pub fn search(&mut self) -> std::io::Result<bool> {
-        self.total_bytes = self.file.metadata()?.len(); // total file size in bytes
-        let mut reader = BufReader::new(&self.file);
-        let mut nbr_line = 0u64;
-
         self.output.clear();
+        self.nbr_line = 0;
+        self.total_bytes = 0;
+        self.current_pos = 0.0;
 
-        loop {
-            let mut buf = String::new();
-            let bytes_read = reader.read_line(&mut buf)?;
-            if bytes_read == 0 {
-                break; // EOF
+        for file_path in &self.files {
+            let file = File::open(file_path)?;
+            let mut reader = BufReader::new(file);
+            loop {
+                let mut buf = String::new();
+                let bytes_read = reader.read_line(&mut buf)?;
+                if bytes_read == 0 {
+                    break;
+                }
+                self.nbr_line += 1;
+
+                if buf.contains(&self.email_to_search) {
+                    self.output.push(buf.trim_end().to_string());
+                }
+
+                self.current_pos += bytes_read as f64; // cumulative progress
             }
-
-            nbr_line += 1;
-
-            if buf.contains(&self.email_to_search) {
-                self.output.push(buf.trim_end().to_string());
-            }
-
-            // Here’s the ratio: bytes_read_so_far / total_bytes
-            self.current_pos = reader.stream_position().unwrap() as f64; // how many bytes have been read
-
-            // You can log or display this;
-
-            // progress
-            self.progress();
         }
 
-        self.nbr_line = nbr_line;
-        for i in self.output.clone() {
-            println!("{}", i);
-        }
         Ok(true)
     }
 
@@ -84,5 +96,9 @@ impl Searcher {
 
     pub fn progress(&self) -> f64 {
         self.current_pos / self.total_bytes as f64
+    }
+
+    pub fn get_results(&self) -> &[String] {
+        &self.output
     }
 }

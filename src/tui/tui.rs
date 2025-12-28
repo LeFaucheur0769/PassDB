@@ -15,7 +15,9 @@ use ratatui::{
 };
 use std::{
     io::{self, Stdout},
-    path, result,
+    path,
+    process::exit,
+    result,
 };
 use tui_input::{self, Input, backend::crossterm::EventHandler};
 
@@ -36,16 +38,17 @@ const LOGO: &str = r#"
 "#;
 
 pub fn tui(
-    import_dir: String,
-    output_dir: String,
+    import_dir: String, // import_location
+    output_dir: String, // db_location
     to_sort_dir: String,
-    export_dir: String,
+    export_dir: String, // export_results_location
 ) -> color_eyre::Result<()> {
     color_eyre::install()?;
     let mut terminal = ratatui::init();
     //let _ = search(&mut terminal);
     let passdb = passdb_ui(&mut terminal)?;
     // Launch the right submenu for the right seletcted submenu
+    let export = export_dir.clone();
     match passdb {
         "Add a combolist" => {
             //ratatui::restore();
@@ -54,10 +57,12 @@ pub fn tui(
         }
         "Search a combolist" => {
             //terminal.clear()?;
-            let search_combo = search_combolist_ui(&mut terminal, output_dir, export_dir);
+            let search_combo =
+                search_combolist_ui(&mut terminal, output_dir.clone(), export.clone());
             match search_combo.as_str() {
                 "Print the output to the terminal" => {
-                    let search = search_input_email(&mut terminal);
+                    let search =
+                        search_input_email(&mut terminal, output_dir.clone(), export.clone());
                 }
                 "Save the output to a file" => {
                     println!("Print the output to the term");
@@ -324,7 +329,7 @@ struct SearchCombolist {
 impl SearchCombolist {
     fn new(db_dir: String, export_dir: String) -> Self {
         let mut state = ListState::default();
-        state.select(Some(1));
+        state.select(Some(0));
         SearchCombolist {
             db_dir,
             export_dir,
@@ -435,6 +440,8 @@ struct SearchInputEmail {
     input: Input,
     input_mode: InputMode,
     search_output: Vec<String>,
+    db_dir: String,
+    export_dir: String,
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
@@ -445,7 +452,12 @@ enum InputMode {
 }
 
 impl SearchInputEmail {
-    fn run(mut self, terminal: &mut ratatui::DefaultTerminal) -> io::Result<()> {
+    fn run(
+        mut self,
+        terminal: &mut ratatui::DefaultTerminal,
+        db_dir: String,
+        export_dir: String,
+    ) -> io::Result<()> {
         loop {
             terminal.draw(|frame| self.draw(frame))?;
 
@@ -458,7 +470,9 @@ impl SearchInputEmail {
                         _ => {}
                     },
                     InputMode::Editing => match key.code {
-                        KeyCode::Enter => self.push_input(),
+                        KeyCode::Enter => {
+                            self.push_input(terminal, db_dir.clone(), export_dir.clone())
+                        }
                         KeyCode::Esc => self.stop_editing(),
                         _ => {
                             self.input.handle_event(&event);
@@ -477,8 +491,21 @@ impl SearchInputEmail {
         self.input_mode = InputMode::Normal;
     }
 
-    fn push_input(&mut self) {
-        //self. = self.input.to_string();
+    fn push_input(
+        &mut self,
+        terminal: &mut ratatui::DefaultTerminal,
+        db_dir: String,
+        export_dir: String,
+    ) {
+        //exit(10);
+        terminal.clear();
+        let mut search_output = SearchOutput::new();
+        search_output.run(
+            terminal,
+            self.input.to_string(),
+            db_dir.clone(),
+            export_dir.clone(),
+        );
     }
 
     fn draw(&mut self, frame: &mut Frame) {
@@ -535,15 +562,16 @@ impl SearchInputEmail {
 // has been written.
 fn search_input_email(
     terminal: &mut Terminal<CrosstermBackend<Stdout>>,
+    db_dir: String,
+    export_dir: String,
 ) -> Result<(), std::io::Error> {
-    let result = SearchInputEmail::default().run(terminal);
+    let result = SearchInputEmail::default().run(terminal, db_dir, export_dir);
     return result;
 }
 
 // Component that is used to render the current state of the search and the output
 pub struct SearchOutput {
     logo_hight: u16,
-    email_to_search: String,
     results: Vec<String>,
     scroll_offset: u16,
 }
@@ -551,9 +579,8 @@ pub struct SearchOutput {
 impl SearchOutput {
     pub fn new() -> Self {
         SearchOutput {
-            email_to_search: "test@gmail.com".to_string(),
             logo_hight: LOGO.lines().count() as u16 + 2,
-            results: vec!["test".to_string(), "tristan".to_string()],
+            results: vec![],
             scroll_offset: 0,
         }
     }
@@ -579,6 +606,7 @@ impl SearchOutput {
         let results = Paragraph::new(self.results.join("\n"))
             .left_aligned()
             .scroll((0, 0))
+            .block(Block::default().borders(Borders::ALL))
             .wrap(Wrap { trim: true })
             .scroll((self.scroll_offset, 0));
 
@@ -604,7 +632,20 @@ impl SearchOutput {
         frame.render_widget(results, result_chunk[0]);
     }
 
-    pub fn run<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> io::Result<()> {
+    pub fn run<B: Backend>(
+        &mut self,
+        terminal: &mut Terminal<B>,
+        email_to_search: String,
+        db_dir: String,
+        export_dir: String,
+    ) -> io::Result<()> {
+        let mut searcher =
+            search::search::Searcher::new(db_dir, export_dir, email_to_search.clone())
+                .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+        //self.results =
+        searcher.search()?;
+        self.results = (&searcher.get_results()).to_vec();
+
         loop {
             terminal
                 .draw(|frame| self.draw(frame))
@@ -615,7 +656,7 @@ impl SearchOutput {
                     KeyCode::Char('q') | KeyCode::Esc => break,
                     KeyCode::Down => {
                         // only scroll if there are more lines than the display area
-                        if self.scroll_offset < self.results.len() as u16 {
+                        if self.scroll_offset < self.results.len() as u16 - 1 {
                             self.scroll_offset += 1;
                         }
                     }
