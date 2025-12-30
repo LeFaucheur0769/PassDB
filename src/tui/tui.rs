@@ -640,14 +640,35 @@ fn process_files_worker(
 
                         // If it's a new file, sort it
                         if !file_exist {
-                            sorter::Sort::new(file_path, &db_location).ok().and_then(
-                                |mut sorter| {
-                                    let result = sorter.sort_optimised();
-                                    progress_tx
+                            match sorter::Sort::new(file_path, &db_location) {
+                                Ok(mut sorter) => {
+                                    println!("DEBUG: Starting to sort file {:?}", file_path);
+                                    let result = sorter.sort_optimised_safe();
+                                    println!(
+                                        "DEBUG: Sort result for {:?}: {:?}",
+                                        file_path, result
+                                    );
+                                    if let Err(e) = progress_tx
                                         .send(WorkerProgress::SortCompleted(file_index, result))
-                                        .ok()
-                                },
-                            );
+                                    {
+                                        eprintln!("DEBUG: Failed to send sort completion: {}", e);
+                                    }
+                                }
+                                Err(e) => {
+                                    eprintln!(
+                                        "DEBUG: Failed to create sorter for {:?}: {}",
+                                        file_path, e
+                                    );
+                                    // Send an error result anyway
+                                    let _ = progress_tx.send(WorkerProgress::SortCompleted(
+                                        file_index,
+                                        Err(color_eyre::eyre::eyre!(
+                                            "Failed to create sorter: {}",
+                                            e
+                                        )),
+                                    ));
+                                }
+                            }
                         }
                     }
                     file_processed = true;

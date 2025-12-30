@@ -1,18 +1,17 @@
-use clap::builder::Str;
-use crossterm::event::read;
-use dashmap::DashMap;
 use md5::{self, Digest};
-use ratatui::symbols::line;
-use rayon::{prelude::*, vec};
-use std::alloc::System;
-use std::fs::{self, File, OpenOptions};
+use rayon::prelude::*;
+use std::collections::HashMap;
+use std::fs::{self, File};
+use std::io::BufWriter;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
-use std::process::exit;
 use std::result::Result::Ok;
-use std::sync::{Arc, Mutex};
-use std::time::Duration;
-use std::{clone, io};
+
+pub fn sanitize_filename(s: &str) -> String {
+    s.chars()
+        .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-')
+        .collect()
+}
 
 pub struct HashFile {
     file: File,
@@ -110,133 +109,68 @@ impl Sort {
             file_name,
         })
     }
-
-    pub fn sort_optimised(&mut self) -> color_eyre::Result<String> {
-        // Define some settings that can be tweaked to modify the process
-        let nrb_lines: u64 = 1000000; // By default, reads one milion lines by one milion to
-        // optimise the ram usage
-
-        // First make sure that the output_dir exists
+    pub fn sort_optimised_safe(&mut self) -> color_eyre::Result<String> {
         fs::create_dir_all(&self.output_dir)?;
 
-        // Create a concurent hashmap to group lines by their first characters. By using dashmap i
-        // can read/write simultaniously without locking the entire hashmap. Mutex make sure that
-        // only one thread can modify the vec at a time.
-        let groups: DashMap<String, Arc<Mutex<Vec<String>>>> = DashMap::new();
-
-        // Read the lines from the file
-        let mut reader = BufReader::new(&self.file);
-        let mut line = String::new();
-        let mut batch = Vec::new();
-        loop {
-            line.clear();
-
-            let bytes_read = reader.read_line(&mut line)?;
-
-            if bytes_read == 0 {
-                // EOF reached
-                if !batch.is_empty() {
-                    //    println!("Processing final batch of {} lines", batch.len()); // Used for debugging // This will
-                    // actually print nothing due to ratatui
-                }
-                break;
-            }
-            // Add the line to batch ( we need to clone it because we will reuse the buffer)
-            batch.push(line.clone());
-
-            // If batch is full : process it
-            if batch.len() >= nrb_lines as usize {
-                //println!("Processing batch of {} lines", batch.len()); // Used for debugging
-
-                // Start of the sorting process for the lines contained in the batch
-
-                batch
-                    // Using iter allows to process lines in parallel using rayon
-                    .par_iter()
-                    // Process only the non empty lines
-                    .filter(|line| !line.trim().is_empty())
-                    // For earch non empty line, process it in parallel
-                    .for_each(|line| {
-                        // trim whitespaces and convert the line to String
-                        let trimmed = line.trim().to_string();
-                        let first_3 = trimmed.chars().take(3).collect::<String>();
-                        if !first_3.is_empty() {
-                            groups
-                                .entry(first_3)
-                                .or_insert_with(|| Arc::new(Mutex::new(Vec::new())))
-                                .lock()
-                                .unwrap()
-                                .push(trimmed);
-                        }
-                    });
-                // Write each group to its own file, also in parallel
-                groups.par_iter().try_for_each(|entry| {
-                    let (file_name, lines_arc) = entry.pair();
-                    let file_path =
-                        PathBuf::from(&self.output_dir).join(format!("{}.txt", file_name));
-                    let lines = Arc::try_unwrap(lines_arc.clone())
-                        .map_err(|_| {
-                            color_eyre::eyre::eyre!(
-                                "Failed to unwrap Arc - multiple references still exist"
-                            )
-                        })?
-                        .into_inner()
-                        .map_err(|_| {
-                            color_eyre::eyre::eyre!(
-                                "Mutex poison error - a thread panicked while holding the lock"
-                            )
-                        })?;
-                    let content = lines.join("\n") + "\n";
-
-                    let mut file = OpenOptions::new()
-                        .create(true)
-                        .append(true)
-                        .open(file_path)?;
-                    file.write_all(content.as_bytes())?;
-                    Ok::<(), color_eyre::Report>(())
-                })?;
-                batch.clear();
-            }
-        }
-        exit(11);
-
-        Ok(format!(
-            "Finished sorting {} (created {} sorted files)",
-            self.file_name,
-            groups.len()
-        ))
-    }
-
-    pub fn sort(&mut self) -> color_eyre::Result<String> {
+        // First pass: collect all unique groups
+        let mut groups: HashMap<String, Vec<String>> = HashMap::new();
         let reader = BufReader::new(&self.file);
-        let mut vec_first_3 = vec![];
-        for (i, line) in reader.lines().enumerate() {
-            let line_unwrap = match line {
-                Ok(l) => l.trim().to_string(),
-                Err(_) => continue, // skip invalid UTF-8 lines
-            };
 
-            let mut file_name = line_unwrap.chars().take(3).collect::<String>();
-
-            if file_name.is_empty() {
+        //println!("First pass: collecting groups...");
+        for line_result in reader.lines() {
+            let line = line_result?;
+            let trimmed = line.trim();
+            if trimmed.is_empty() {
                 continue;
             }
 
-            file_name.push_str(".txt");
-            vec_first_3.push(file_name.clone());
+            let first_3 = trimmed.chars().take(3).collect::<String>();
+            let sanitized = sanitize_filename(&first_3);
+            if sanitized.is_empty() {
+                continue;
+            }
 
-            let mut file_path = std::path::PathBuf::from(&self.output_dir);
-            file_path.push(&file_name); // append the file name
-
-            // Open the file corresponding to the line
-
-            let mut file_sorted_line = fs::OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open(file_path)?;
-            writeln!(file_sorted_line, "{}", line_unwrap)?;
+            groups
+                .entry(sanitized)
+                .or_insert_with(Vec::new)
+                .push(trimmed.to_string());
         }
-        Ok(format!("Finished sorting {}", self.file_name))
+
+        //println!("Found {} unique groups", groups.len());
+
+        // Second pass: write each group to its file (one at a time)
+        let mut file_count = 0;
+        let total_groups = groups.len();
+
+        for (i, (group_name, lines)) in groups.into_iter().enumerate() {
+            if lines.is_empty() {
+                continue;
+            }
+
+            // println!(
+            //     "Writing group {}/{}: {} ({} lines)",
+            //     i + 1,
+            //     total_groups,
+            //     group_name,
+            //     lines.len()
+            // );
+
+            let file_path = PathBuf::from(&self.output_dir).join(format!("{}.txt", group_name));
+            let file = File::create(file_path)?;
+            let mut writer = BufWriter::new(file);
+
+            for line in lines {
+                writeln!(writer, "{}", line)?;
+            }
+
+            writer.flush()?;
+            file_count += 1;
+        }
+
+        Ok(format!(
+            "Finished sorting {} (created {} sorted files)",
+            self.file_name, file_count
+        ))
     }
 
     // pub fn progress() -> f64 {
