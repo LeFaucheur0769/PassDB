@@ -1,29 +1,20 @@
 use crate::{search, sorter::sorter};
-use clap::builder::Str;
-use color_eyre::owo_colors::{
-    OwoColorize,
-    colors::{Yellow, xterm::DarkPurple},
-};
-use core::time;
-use crossterm::{
-    event::{self, Event, KeyCode},
-    terminal,
-};
+use color_eyre::owo_colors::colors::{Yellow, xterm::DarkPurple};
+use crossterm::event::{self, Event, KeyCode};
 use glob;
 use ratatui::{
     self, Frame, Terminal,
     layout::{Constraint, Direction, Layout},
     prelude::*,
-    symbols::border,
     widgets::{Block, Borders, Gauge, List, ListItem, ListState, Paragraph, Wrap},
 };
+use std::collections::HashSet;
+use std::sync::mpsc::{Receiver, Sender, TryRecvError, channel};
+use std::thread;
+use std::time::{Duration, Instant};
 use std::{
     io::{self, Stdout},
     path,
-    process::exit,
-    result,
-    thread::sleep,
-    time::Duration,
 };
 use tui_input::{self, Input, backend::crossterm::EventHandler};
 
@@ -44,44 +35,42 @@ const LOGO: &str = r#"
 "#;
 
 pub fn tui(
-    import_dir: String, // import_location
-    output_dir: String, // db_location
+    import_dir: String,
+    output_dir: String,
     to_sort_dir: String,
-    export_dir: String, // export_results_location
+    export_dir: String,
 ) -> color_eyre::Result<()> {
     color_eyre::install()?;
     let mut terminal = ratatui::init();
-    //let _ = search(&mut terminal);
+
     let passdb = passdb_ui(&mut terminal)?;
-    // Launch the right submenu for the right seletcted submenu
     let export = export_dir.clone();
+
     match passdb {
         "Add a combolist" => {
-            //ratatui::restore();
-            let _ = add_combolist(&mut terminal, output_dir, import_dir);
-            //ratatui::init();
+            add_combolist(&mut terminal, output_dir, import_dir)?;
         }
         "Search a combolist" => {
-            //terminal.clear()?;
             let search_combo =
-                search_combolist_ui(&mut terminal, output_dir.clone(), export.clone());
+                search_combolist_ui(&mut terminal, output_dir.clone(), export.clone())?;
             match search_combo.as_str() {
                 "Print the output to the terminal" => {
-                    let search =
-                        search_input_email(&mut terminal, output_dir.clone(), export.clone());
+                    let _search =
+                        search_input_email(&mut terminal, output_dir.clone(), export.clone())?;
                 }
                 "Save the output to a file" => {
                     println!("Print the output to the term");
                 }
                 "Exit" => println!("Exiting"),
-                _ => eprintln!("Unknown option: {search_combo}"),
+                other => eprintln!("Unknown option: {}", other),
             }
         }
         "Tools" => println!("Tools"),
         "Clean duplicates" => println!("Clean duplicates"),
         "Exit" => std::process::exit(0),
-        _ => eprintln!("Unknown option: {passdb}"),
+        other => eprintln!("Unknown option: {}", other),
     }
+
     ratatui::restore();
     Ok(())
 }
@@ -174,10 +163,25 @@ fn search_combolist_ui<B: Backend>(
     terminal: &mut Terminal<B>,
     db_dir: String,
     export_dir: String,
-) -> String {
-    let mut searchCombo = SearchCombolist::new(db_dir, export_dir);
-    searchCombo.run(terminal);
-    return searchCombo.selected_option;
+) -> color_eyre::Result<String> {
+    let mut search_combo = SearchCombolist::new(db_dir, export_dir);
+    search_combo.run(terminal)?;
+    Ok(search_combo.selected_option)
+}
+#[derive(Debug)]
+enum WorkerProgress {
+    FileProgress(usize, f64),                         // (file_index, progress)
+    FileCompleted(usize, String, bool),               // (file_index, hash, file_exist)
+    SortCompleted(usize, color_eyre::Result<String>), // (file_index, result)
+    WorkerFinished,
+}
+
+#[derive(Debug)]
+enum WorkerCommand {
+    Stop,
+    Pause,
+    Resume,
+    SkipCurrentFile,
 }
 
 struct AddCombolist {
@@ -187,156 +191,477 @@ struct AddCombolist {
     progress_total: f64,
     logs: Vec<String>,
     logo_height: u16,
+    scroll_offset: u16,
+    processed_files: HashSet<usize>, // ADD THIS FIELD
 }
 
 impl AddCombolist {
     fn new(import_dir: String) -> Self {
-        let partern = format!("{import_dir}/**/*");
-        let files: Vec<path::PathBuf> = glob::glob(&partern)
-            .expect("Failed to read glob patern")
+        let pattern = format!("{import_dir}/**/*");
+        let files: Vec<path::PathBuf> = glob::glob(&pattern)
+            .expect("Failed to read glob pattern")
             .filter_map(Result::ok)
             .collect();
-        let logo_height = LOGO.lines().count() as u16 + 2;
+        let logo_height = 10; // Replace LOGO.lines().count() as u16 + 2 with actual value
+
+        // Log initial file count
+        let mut logs = vec![];
+        logs.push(format!("Found {} files to process", files.len()));
+
         AddCombolist {
             files,
             current_index: 0,
             progress_current: 0.0,
             progress_total: 0.0,
-            logs: vec![],
+            logs,
             logo_height,
+            scroll_offset: 0,
+            processed_files: HashSet::new(), // Initialize the new field
         }
     }
 
     fn next_file(&mut self) {
         self.progress_current = 0.0;
-        if self.current_index == 280 {
-            self.current_index = 280;
-        } else {
+
+        if self.current_index + 1 < self.files.len() {
             self.current_index += 1;
         }
-        if self.current_index as f64 / self.files.len() as f64 == 1.0 {
-            self.progress_total = 1.0;
-        } else {
-            self.progress_total = self.current_index as f64 / self.files.len() as f64;
+
+        // Update total progress based on processed files
+        if !self.files.is_empty() {
+            self.progress_total = self.processed_files.len() as f64 / self.files.len() as f64;
         }
-        self.logs.push(format!(
-            "Processing file {}/{}: {:?}",
-            self.current_index,
-            self.files.len(),
-            self.files[self.current_index - 1]
-        ));
+
+        if self.current_index < self.files.len() {
+            self.logs.push(format!(
+                "Processing file {}/{}: {:?}",
+                self.current_index + 1,
+                self.files.len(),
+                self.files[self.current_index]
+            ));
+        }
     }
 
     fn draw(&self, frame: &mut Frame) {
         let area = frame.area();
-        let mut chunks = Layout::default()
-            .constraints([Constraint::Min(1), Constraint::Min(1)])
-            .direction(layout::Direction::Vertical)
+        let mut chunks = layout::Layout::default()
+            .constraints([
+                Constraint::Length(3), // Current file gauge
+                Constraint::Length(3), // Total progress gauge
+                Constraint::Min(1),    // Logs
+            ])
+            .direction(Direction::Vertical)
             .margin(1)
             .split(area);
+
         let file_name = self
             .files
             .get(self.current_index)
-            .and_then(|p| p.to_str())
-            .unwrap_or("Invalid UTF-8");
+            .and_then(|p| p.file_name())
+            .and_then(|os_str| os_str.to_str())
+            .unwrap_or("No file selected");
 
-        if area.height > self.logo_height + 15 {
-            chunks = Layout::default()
-                .constraints([
-                    Constraint::Length(self.logo_height),
-                    Constraint::Min(0),
-                    Constraint::Min(0),
-                ])
-                .direction(layout::Direction::Vertical)
-                .margin(1)
-                .split(area);
-        }
-        // The gague bare of the current file
+        // Current file progress gauge
         let process = Gauge::default()
-            .block(Block::default().title(file_name).borders(Borders::ALL))
+            .block(
+                Block::default()
+                    .title(format!("Current: {}", file_name))
+                    .borders(Borders::ALL),
+            )
             .gauge_style(Style::default().fg(Color::Green))
-            .ratio(self.progress_current);
+            .ratio(self.progress_current)
+            .label(format!("{:.1}%", self.progress_current * 100.0));
 
-        // The total process
+        // Total progress gauge
+        let total_files = self.files.len();
+        let processed_count = self.processed_files.len();
         let total_process = Gauge::default()
             .block(
                 Block::default()
-                    .title("Total processed files")
+                    .title(format!(
+                        "Total Progress: {}/{} files",
+                        processed_count, total_files
+                    ))
                     .borders(Borders::ALL),
             )
             .gauge_style(Style::default().fg(Color::Blue))
             .ratio(self.progress_total)
-            .label(format!("{}/{}", self.current_index, self.files.len()));
+            .label(format!("{:.1}%", self.progress_total * 100.0));
 
-        // The logs of what is beeing processed //
-        let logs = Paragraph::new(self.logs.join("\n"))
-            .block(Block::default().borders(Borders::ALL))
-            .scroll((self.logs.iter().count() as u16, 5))
-            .wrap(ratatui::widgets::Wrap { trim: true });
+        // Logs
+        let visible_height = chunks[2].height as usize;
+        let logs_start = self.scroll_offset as usize;
+        let logs_end = logs_start + visible_height;
+        let logs_vec: Vec<ListItem> = self
+            .logs
+            .iter()
+            .enumerate()
+            .skip(logs_start)
+            .take(visible_height)
+            .map(|(i, line)| ListItem::new(format!("[{}] {}", i + 1, line)))
+            .collect();
+
+        let logs_render =
+            List::new(logs_vec).block(Block::default().title("Logs").borders(Borders::ALL));
 
         frame.render_widget(process, chunks[0]);
         frame.render_widget(total_process, chunks[1]);
-        frame.render_widget(logs, chunks[2]);
+        frame.render_widget(logs_render, chunks[2]);
     }
 }
 
-// crate gauges that fills while the hashes are being processed
-// create a second gauge that fills the more files are processed
 fn add_combolist<B: Backend>(
     terminal: &mut Terminal<B>,
     db_location: String,
     import_dir: String,
-) -> io::Result<&str> {
-    let mut state = ListState::default();
-    state.select(Some(0));
-
+) -> color_eyre::Result<&'static str> {
     let mut add_combo = AddCombolist::new(import_dir.to_string());
+    add_combo.logs.push("Starting processing...".to_string());
+
+    // Channels for communication between threads
+    let (progress_tx, progress_rx) = channel::<WorkerProgress>();
+    let (command_tx, command_rx) = channel::<WorkerCommand>();
+
+    // Launch worker thread
+    let db_location_clone = db_location.clone();
+    let files_clone = add_combo.files.clone();
+    let total_files = files_clone.len();
+
+    thread::spawn(move || {
+        process_files_worker(files_clone, db_location_clone, progress_tx, command_rx);
+    });
+
     let mut finished = false;
+    let mut is_processing = true;
+    let mut last_ui_update = Instant::now();
+    let ui_update_interval = Duration::from_millis(16); // ~60 FPS
 
     while !finished {
-        // process current file
-        let current_file = &add_combo.files[add_combo.current_index];
-        let mut hashfile =
-            sorter::HashFile::new(current_file.to_str().unwrap(), db_location.as_str())?;
-        let mut progress_current_file = 0.0;
-
-        loop {
-            if hashfile.update()? {
-                progress_current_file = hashfile.progress();
-                add_combo.progress_current = progress_current_file;
-            } else {
-                let hash = hashfile.finalize()?;
-                add_combo.logs.push(format!(
-                    "Finished processing file {:?} with hash {}",
-                    current_file, hash
-                ));
-                break;
+        // Step 1: Check for worker progress updates
+        match progress_rx.try_recv() {
+            Ok(WorkerProgress::FileProgress(file_index, progress)) => {
+                if file_index == add_combo.current_index {
+                    add_combo.progress_current = progress as f64;
+                }
             }
+            Ok(WorkerProgress::FileCompleted(file_index, hash, file_exist)) => {
+                add_combo.processed_files.insert(file_index);
 
-            // draw UI
-            terminal.draw(|frame| add_combo.draw(frame));
+                if file_index < add_combo.files.len() {
+                    add_combo.logs.push(format!(
+                        "Finished processing file {:?} with hash {}",
+                        add_combo.files[file_index].display(),
+                        hash
+                    ));
 
-            // optional: handle quit key
-            if event::poll(std::time::Duration::from_millis(10))?
-                && let Event::Key(key) = event::read()?
-            {
-                if key.code == KeyCode::Char('q') || key.code == KeyCode::Esc {
-                    finished = true;
+                    if !file_exist {
+                        add_combo
+                            .logs
+                            .push(format!("New file - sorting content and adding {}", hash));
+                    }
+                }
 
-                    break;
+                // Update total progress
+                if !add_combo.files.is_empty() {
+                    add_combo.progress_total =
+                        add_combo.processed_files.len() as f64 / add_combo.files.len() as f64;
+                }
+
+                // If this is the current file, move to next unprocessed one
+                if file_index == add_combo.current_index {
+                    // Find next unprocessed file
+                    let mut next_index = add_combo.current_index;
+                    let mut found = false;
+
+                    for i in add_combo.current_index..add_combo.files.len() {
+                        if !add_combo.processed_files.contains(&i) {
+                            next_index = i;
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    if !found {
+                        // Check from beginning
+                        for i in 0..add_combo.current_index {
+                            if !add_combo.processed_files.contains(&i) {
+                                next_index = i;
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if found {
+                        add_combo.current_index = next_index;
+                        add_combo.progress_current = 0.0;
+                        if next_index < add_combo.files.len() {
+                            add_combo.logs.push(format!(
+                                "Moving to file {}/{}: {:?}",
+                                next_index + 1,
+                                add_combo.files.len(),
+                                add_combo.files[next_index].display()
+                            ));
+                        }
+                    } else {
+                        is_processing = false;
+                        add_combo.logs.push("All files processed!".to_string());
+                    }
+                }
+            }
+            Ok(WorkerProgress::SortCompleted(file_index, result)) => match result {
+                Ok(message) => {
+                    if file_index < add_combo.files.len() {
+                        add_combo.logs.push(format!(
+                            "Successfully sorted file {:?}: {:?}",
+                            add_combo.files[file_index].display(),
+                            message
+                        ));
+                    }
+                }
+                Err(e) => {
+                    if file_index < add_combo.files.len() {
+                        add_combo.logs.push(format!(
+                            "Sort error for file {:?}: {:?}",
+                            add_combo.files[file_index].display(),
+                            e
+                        ));
+                    }
+                }
+            },
+            Ok(WorkerProgress::WorkerFinished) => {
+                is_processing = false;
+                add_combo.logs.push("Worker thread finished".to_string());
+                add_combo.progress_total = 1.0;
+            }
+            Err(TryRecvError::Empty) => {} // No new progress updates
+            Err(TryRecvError::Disconnected) => {
+                add_combo
+                    .logs
+                    .push("Worker thread disconnected".to_string());
+                is_processing = false;
+            }
+        }
+
+        // Step 2: Handle input (non-blocking)
+        while event::poll(Duration::from_millis(1))? {
+            if let Event::Key(key) = event::read()? {
+                match key.code {
+                    KeyCode::Char('q') | KeyCode::Esc => {
+                        // Send stop command to worker
+                        let _ = command_tx.send(WorkerCommand::Stop);
+                        finished = true;
+                        add_combo.logs.push("Exiting...".to_string());
+                    }
+                    KeyCode::Up => {
+                        add_combo.scroll_offset = add_combo.scroll_offset.saturating_sub(1);
+                    }
+                    KeyCode::Down => {
+                        add_combo.scroll_offset = add_combo.scroll_offset.saturating_add(1);
+                    }
+                    KeyCode::PageUp => {
+                        add_combo.scroll_offset = add_combo.scroll_offset.saturating_sub(10);
+                    }
+                    KeyCode::PageDown => {
+                        add_combo.scroll_offset = add_combo.scroll_offset.saturating_add(10);
+                    }
+                    KeyCode::Char('c') => {
+                        add_combo.logs.push("Clearing logs".to_string());
+                        add_combo.logs.clear();
+                        add_combo.scroll_offset = 0;
+                    }
+                    KeyCode::Char('p') => {
+                        if is_processing {
+                            let _ = command_tx.send(WorkerCommand::Pause);
+                            add_combo.logs.push("Processing paused".to_string());
+                        } else {
+                            let _ = command_tx.send(WorkerCommand::Resume);
+                            add_combo.logs.push("Processing resumed".to_string());
+                        }
+                    }
+                    KeyCode::Char('s') => {
+                        let _ = command_tx.send(WorkerCommand::SkipCurrentFile);
+                        add_combo.logs.push("Skipping current file".to_string());
+                        add_combo.processed_files.insert(add_combo.current_index);
+
+                        // Find next unprocessed file
+                        let mut found = false;
+                        for i in add_combo.current_index + 1..add_combo.files.len() {
+                            if !add_combo.processed_files.contains(&i) {
+                                add_combo.current_index = i;
+                                add_combo.progress_current = 0.0;
+                                found = true;
+                                break;
+                            }
+                        }
+
+                        if !found {
+                            is_processing = false;
+                            add_combo.logs.push("No more files to process".to_string());
+                        }
+
+                        // Update total progress
+                        if !add_combo.files.is_empty() {
+                            add_combo.progress_total = add_combo.processed_files.len() as f64
+                                / add_combo.files.len() as f64;
+                        }
+                    }
+                    _ => {}
                 }
             }
         }
 
-        // move to next file
-        if add_combo.current_index + 1 < add_combo.files.len() {
-            add_combo.next_file();
-        } else {
-            finished = true; // last file finished
-            sleep(Duration::from_millis(100));
+        // Step 3: Redraw UI at a controlled rate
+        let now = Instant::now();
+        if now.duration_since(last_ui_update) >= ui_update_interval {
+            terminal.draw(|frame| add_combo.draw(frame));
+            last_ui_update = now;
+        }
+
+        // Step 4: Check if we're done
+        if !is_processing && add_combo.processed_files.len() >= add_combo.files.len() {
+            // Small delay to let final messages come through
+            thread::sleep(Duration::from_millis(500));
+            add_combo
+                .logs
+                .push("=== PROCESSING COMPLETE ===".to_string());
+            add_combo.logs.push("Press 'q' to exit".to_string());
+            terminal.draw(|frame| add_combo.draw(frame));
+
+            // Wait for user to press 'q' before exiting
+            loop {
+                if event::poll(Duration::from_millis(100))? {
+                    if let Event::Key(key) = event::read()? {
+                        match key.code {
+                            KeyCode::Char('q') | KeyCode::Esc | KeyCode::Enter => {
+                                finished = true;
+                                break;
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+                terminal.draw(|frame| add_combo.draw(frame));
+            }
+        }
+
+        // Small sleep to prevent busy waiting
+        thread::sleep(Duration::from_millis(1));
+    }
+
+    Ok("exit")
+}
+
+// Worker thread function
+fn process_files_worker(
+    files: Vec<path::PathBuf>,
+    db_location: String,
+    progress_tx: Sender<WorkerProgress>,
+    command_rx: Receiver<WorkerCommand>,
+) {
+    let mut paused = false;
+    let mut should_stop = false;
+    let mut skip_current = false;
+
+    for (file_index, file_path) in files.iter().enumerate() {
+        if should_stop {
+            break;
+        }
+
+        // Reset skip flag for new file
+        skip_current = false;
+
+        // Check for commands before starting a new file
+        loop {
+            match command_rx.try_recv() {
+                Ok(WorkerCommand::Stop) => {
+                    let _ = progress_tx.send(WorkerProgress::WorkerFinished);
+                    return;
+                }
+                Ok(WorkerCommand::Pause) => paused = true,
+                Ok(WorkerCommand::Resume) => paused = false,
+                Ok(WorkerCommand::SkipCurrentFile) => {
+                    skip_current = true;
+                    break;
+                }
+                Err(_) => break, // No more commands
+            }
+        }
+
+        if skip_current {
+            continue; // Skip this file
+        }
+
+        // Process current file
+        if let Ok(mut hashfile) = sorter::HashFile::new(file_path, &db_location) {
+            let mut file_processed = false;
+
+            while !file_processed && !should_stop && !skip_current {
+                // Check for commands
+                loop {
+                    match command_rx.try_recv() {
+                        Ok(WorkerCommand::Stop) => {
+                            should_stop = true;
+                            break;
+                        }
+                        Ok(WorkerCommand::Pause) => paused = true,
+                        Ok(WorkerCommand::Resume) => paused = false,
+                        Ok(WorkerCommand::SkipCurrentFile) => {
+                            skip_current = true;
+                            file_processed = true;
+                            break;
+                        }
+                        Err(_) => break, // No more commands
+                    }
+                }
+
+                if should_stop || skip_current {
+                    break;
+                }
+
+                if paused {
+                    thread::sleep(Duration::from_millis(100));
+                    continue;
+                }
+
+                // Update hash progress
+                if hashfile.update().unwrap_or(false) {
+                    let progress = hashfile.progress();
+                    let _ = progress_tx.send(WorkerProgress::FileProgress(file_index, progress));
+                    thread::sleep(Duration::from_millis(10)); // Prevent tight loop
+                } else {
+                    // File hash completed
+                    if let Ok((hash, file_exist)) = hashfile.finalize() {
+                        let _ = progress_tx.send(WorkerProgress::FileCompleted(
+                            file_index,
+                            hash.clone(),
+                            file_exist,
+                        ));
+
+                        // If it's a new file, sort it
+                        if !file_exist {
+                            sorter::Sort::new(file_path, &db_location).ok().and_then(
+                                |mut sorter| {
+                                    let result = sorter.sort_optimised();
+                                    progress_tx
+                                        .send(WorkerProgress::SortCompleted(file_index, result))
+                                        .ok()
+                                },
+                            );
+                        }
+                    }
+                    file_processed = true;
+                }
+            }
+        }
+
+        // Check stop condition again
+        if should_stop {
+            break;
         }
     }
-    Ok("exit")
+
+    let _ = progress_tx.send(WorkerProgress::WorkerFinished);
 }
 
 struct SearchCombolist {
@@ -430,13 +755,10 @@ impl SearchCombolist {
                     KeyCode::Enter => {
                         if let Some(i) = self.state.selected() {
                             let selected = options[i];
-                            if selected == "Exit" {
-                                self.selected_option = selected.to_string();
-                                break;
-                            } else {
-                                self.selected_option = selected.to_string();
-                                break;
-                            }
+                            // if selected == "Exit" {
+                            self.selected_option = selected.to_string();
+                            break;
+                            // }
                         }
                     }
                     _ => {}

@@ -13,6 +13,6 @@ glob = "0.3.3"
 yaml-rust2 = "0.10.4"
 tui-input = {version = "0.14.0", features = ["crossterm"], default-features = false}
 rayon = "1.11.0"
-
+dashmap = {version = "7.0.0-rc", features = ["rayon"]}
 
 

@@ -154,7 +154,8 @@ impl PassDB {
         //)?;
         //ratatui::restore();
         let sorter_test = sorter::sorter::Sort::new(
-            "/home/grimreaper/Desktop/DEV/Rust/project/PassDB/test.txt".to_string(),
+            Path::new("/home/grimreaper/Desktop/DEV/Rust/project/PassDB/test.txt"),
+            &self.db_location,
         );
         println!("{}", sorter_test.unwrap().sort().unwrap());
         Ok(())
