@@ -1,5 +1,4 @@
 use md5::{self, Digest};
-use rayon::prelude::*;
 use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::BufWriter;
@@ -156,7 +155,10 @@ impl Sort {
             // );
 
             let file_path = PathBuf::from(&self.output_dir).join(format!("{}.txt", group_name));
-            let file = File::create(file_path)?;
+            let file = fs::OpenOptions::new()
+                .append(true)
+                .create(true) // Create if doesn't exist
+                .open(file_path)?;
             let mut writer = BufWriter::new(file);
 
             for line in lines {

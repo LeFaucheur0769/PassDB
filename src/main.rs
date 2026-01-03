@@ -2,6 +2,7 @@
 
 mod search;
 mod sorter;
+mod tools;
 mod tui;
 
 // Import clap to use arguments with PassDB
@@ -14,13 +15,14 @@ use std::{
     vec,
 };
 
-use clap::{Arg, CommandFactory, Error, Parser, builder::Str, error::Result};
-use color_eyre::eyre::eyre;
+use clap::{CommandFactory, Parser, error::Result};
 
 // Imports
 
-use md5::digest::consts::True;
 use yaml_rust2::{self};
+
+use crate::clean_files::CleanLine;
+use crate::tools::clean_files;
 
 /// Simple program to greet a person
 #[derive(Parser, Debug)]
@@ -141,7 +143,6 @@ impl PassDB {
     fn test(&mut self) -> color_eyre::Result<()> {
         //println!("{}", self.import_location);
         color_eyre::install()?;
-        let mut terminal = ratatui::init();
         //let _ = search(&mut terminal);
         //println!("{:#?}", self);
         //println!("{:#?}", self.debug);
@@ -157,7 +158,7 @@ impl PassDB {
             Path::new("/home/grimreaper/Desktop/DEV/Rust/project/PassDB/test.txt"),
             &self.db_location,
         );
-        println!("{}", sorter_test.unwrap().sort().unwrap());
+        println!("{}", sorter_test.unwrap().sort_optimised_safe().unwrap());
         Ok(())
     }
 
@@ -168,6 +169,7 @@ impl PassDB {
             self.file_to_sort_location.clone(),
             self.export_results_location.clone(),
         );
+        let _clean = CleanLine::new();
     }
 
     fn run_no_menu(&mut self, email: String) -> Result<()> {

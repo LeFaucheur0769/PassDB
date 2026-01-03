@@ -1,6 +1,6 @@
 use std::{
     fs::File,
-    io::{BufRead, BufReader, Read, Seek},
+    io::{BufRead, BufReader},
     path::PathBuf,
 };
 
@@ -30,7 +30,8 @@ impl Searcher {
             prefix.truncate(3); // optional, max 3 chars
         }
 
-        let export_path = PathBuf::from(std::env::current_dir().unwrap())
+        let export_path = std::env::current_dir()
+            .unwrap()
             .join(db_dir.clone())
             .join("sorted");
 
