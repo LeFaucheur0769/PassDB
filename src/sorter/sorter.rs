@@ -6,6 +6,7 @@ use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::result::Result::Ok;
 
+// Function used to sanitize_filename and prevent the creation of wrong files
 pub fn sanitize_filename(s: &str) -> String {
     s.chars()
         .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-')
@@ -21,6 +22,7 @@ pub struct HashFile {
 }
 
 impl HashFile {
+    // Initialization of the variables used by the hasher
     pub fn new(path: &Path, db_location: &str) -> color_eyre::Result<Self> {
         let file = File::open(path)?;
         let total_size = std::fs::metadata(path)?.len();
@@ -37,21 +39,29 @@ impl HashFile {
     pub fn update(&mut self) -> color_eyre::Result<bool> {
         let mut buffer = vec![0u8; 8 * 1024 * 1024]; // 8 MB on the heap
         let bytes = self.file.read(&mut buffer)?;
+        // Read a chunk of the file to reduce memory usage
+
         if bytes == 0 {
+            // EOF
             return Ok(false);
         }
+
         self.hasher.update(&buffer[..bytes]);
+        // Update the hash content using the bytes read
+
         self.bytes_read += bytes as u64;
+        // Add the bytes read to the total bytes read to allow the creation of a progress bar
         Ok(true)
     }
 
     pub fn progress(&self) -> f64 {
         self.bytes_read as f64 / self.total_size as f64
+        // Return the progress of the hash to use in a progress bar
     }
 
     pub fn finalize(&self) -> color_eyre::Result<(String, bool)> {
-        let cloned = self.hasher.clone(); // clone the hasher to manipulate
-        // it later without borowing issues
+        let cloned = self.hasher.clone();
+        // clone the hasher to manipulate it later without borowing issues
 
         let result = cloned.finalize(); // get the result of
         // the hash to use it multiple times without rerunning the hash process
@@ -101,6 +111,7 @@ impl Sort {
             .to_string();
         let output_dir =
             "/home/grimreaper/Desktop/DEV/Rust/project/PassDB/output/sorted/".to_string();
+        // Hard-coded output dir needs to be changed later
         Ok(Sort {
             file,
             total_size,

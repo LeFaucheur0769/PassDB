@@ -1,3 +1,4 @@
+use crate::logging::{LogEntry, types::LogLevel};
 use crate::sorter::sorter;
 use crossterm::event::{self, Event, KeyCode, KeyModifiers};
 use glob;
@@ -34,7 +35,7 @@ pub struct AddCombolist {
     current_index: usize,
     progress_current: f64,
     progress_total: f64,
-    logs: Vec<String>,
+    logs: Vec<LogEntry>,
     logo_height: u16,
     scroll_offset: u16,
     processed_files: HashSet<usize>, // ADD THIS FIELD
@@ -51,7 +52,10 @@ impl AddCombolist {
 
         // Log initial file count
         let mut logs = vec![];
-        logs.push(format!("Found {} files to process", files.len()));
+        logs.push(LogEntry::info(format!(
+            "Found {} files to process",
+            files.len()
+        )));
 
         AddCombolist {
             files,
@@ -78,12 +82,12 @@ impl AddCombolist {
         }
 
         if self.current_index < self.files.len() {
-            self.logs.push(format!(
+            self.logs.push(LogEntry::info(format!(
                 "Processing file {}/{}: {:?}",
                 self.current_index + 1,
                 self.files.len(),
                 self.files[self.current_index]
-            ));
+            )));
         }
     }
 
@@ -136,13 +140,20 @@ impl AddCombolist {
         // Logs
         let visible_height = chunks[2].height as usize;
         let logs_start = self.scroll_offset as usize;
+
         let logs_vec: Vec<ListItem> = self
             .logs
             .iter()
             .enumerate()
             .skip(logs_start)
             .take(visible_height)
-            .map(|(i, line)| ListItem::new(format!("[{}] {}", i + 1, line)))
+            .map(|(i, line)| {
+                let log_entry = Line::styled(
+                    format!("[{}] {}", i + 1, line.formatted_text()),
+                    line.style(),
+                );
+                ListItem::new(log_entry)
+            })
             .collect();
 
         let logs_render =
@@ -160,7 +171,10 @@ pub fn add_combolist<B: Backend>(
     import_dir: String,
 ) -> color_eyre::Result<&'static str> {
     let mut add_combo = AddCombolist::new(import_dir.to_string());
-    add_combo.logs.push("Starting processing...".to_string());
+
+    add_combo
+        .logs
+        .push(LogEntry::info("Starting processing..."));
 
     // Channels for communication between threads
     let (progress_tx, progress_rx) = channel::<WorkerProgress>();
@@ -192,16 +206,17 @@ pub fn add_combolist<B: Backend>(
                 add_combo.processed_files.insert(file_index);
 
                 if file_index < add_combo.files.len() {
-                    add_combo.logs.push(format!(
+                    add_combo.logs.push(LogEntry::success(format!(
                         "Finished processing file {:?} with hash {}",
                         add_combo.files[file_index].display(),
                         hash
-                    ));
+                    )));
 
                     if !file_exist {
-                        add_combo
-                            .logs
-                            .push(format!("New file - sorting content and adding {}", hash));
+                        add_combo.logs.push(LogEntry::info(format!(
+                            "New file - sorting content and adding {}",
+                            hash
+                        )));
                     }
                 }
 
@@ -240,49 +255,53 @@ pub fn add_combolist<B: Backend>(
                         add_combo.current_index = next_index;
                         add_combo.progress_current = 0.0;
                         if next_index < add_combo.files.len() {
-                            add_combo.logs.push(format!(
+                            add_combo.logs.push(LogEntry::info(format!(
                                 "Moving to file {}/{}: {:?}",
                                 next_index + 1,
                                 add_combo.files.len(),
                                 add_combo.files[next_index].display()
-                            ));
+                            )));
                         }
                     } else {
                         is_processing = false;
-                        add_combo.logs.push("All files processed!".to_string());
+                        add_combo
+                            .logs
+                            .push(LogEntry::success("All files processed!"));
                     }
                 }
             }
             Ok(WorkerProgress::SortCompleted(file_index, result)) => match result {
                 Ok(message) => {
                     if file_index < add_combo.files.len() {
-                        add_combo.logs.push(format!(
+                        add_combo.logs.push(LogEntry::success(format!(
                             "Successfully sorted file {:?}: {:?}",
                             add_combo.files[file_index].display(),
                             message
-                        ));
+                        )));
                     }
                 }
                 Err(e) => {
                     if file_index < add_combo.files.len() {
-                        add_combo.logs.push(format!(
+                        add_combo.logs.push(LogEntry::error(format!(
                             "Sort error for file {:?}: {:?}",
                             add_combo.files[file_index].display(),
                             e
-                        ));
+                        )));
                     }
                 }
             },
             Ok(WorkerProgress::WorkerFinished) => {
                 is_processing = false;
-                add_combo.logs.push("Worker thread finished".to_string());
+                add_combo
+                    .logs
+                    .push(LogEntry::success("Worker thread finished"));
                 add_combo.progress_total = 1.0;
             }
             Err(TryRecvError::Empty) => {} // No new progress updates
             Err(TryRecvError::Disconnected) => {
                 add_combo
                     .logs
-                    .push("Worker thread disconnected".to_string());
+                    .push(LogEntry::error("Worker thread disconnected"));
                 is_processing = false;
             }
         }
@@ -295,7 +314,7 @@ pub fn add_combolist<B: Backend>(
                         // Send stop command to worker
                         let _ = command_tx.send(WorkerCommand::Stop);
                         finished = true;
-                        add_combo.logs.push("Exiting...".to_string());
+                        add_combo.logs.push(LogEntry::info("Exiting..."));
                     }
                     KeyCode::Up => {
                         add_combo.scroll_offset = add_combo.scroll_offset.saturating_sub(1);
@@ -310,22 +329,22 @@ pub fn add_combolist<B: Backend>(
                         add_combo.scroll_offset = add_combo.scroll_offset.saturating_add(10);
                     }
                     KeyCode::Char('c') => {
-                        add_combo.logs.push("Clearing logs".to_string());
+                        add_combo.logs.push(LogEntry::info("Clearing logs"));
                         add_combo.logs.clear();
                         add_combo.scroll_offset = 0;
                     }
                     KeyCode::Char('p') => {
                         if is_processing {
                             let _ = command_tx.send(WorkerCommand::Pause);
-                            add_combo.logs.push("Processing paused".to_string());
+                            add_combo.logs.push(LogEntry::info("Processing paused"));
                         } else {
                             let _ = command_tx.send(WorkerCommand::Resume);
-                            add_combo.logs.push("Processing resumed".to_string());
+                            add_combo.logs.push(LogEntry::info("Processing resumed"));
                         }
                     }
                     KeyCode::Char('s') => {
                         let _ = command_tx.send(WorkerCommand::SkipCurrentFile);
-                        add_combo.logs.push("Skipping current file".to_string());
+                        add_combo.logs.push(LogEntry::info("Skipping current file"));
                         add_combo.processed_files.insert(add_combo.current_index);
 
                         // Find next unprocessed file
@@ -341,7 +360,9 @@ pub fn add_combolist<B: Backend>(
 
                         if !found {
                             is_processing = false;
-                            add_combo.logs.push("No more files to process".to_string());
+                            add_combo
+                                .logs
+                                .push(LogEntry::success("All files processed!"));
                         }
 
                         // Update total progress
@@ -371,8 +392,8 @@ pub fn add_combolist<B: Backend>(
             thread::sleep(Duration::from_millis(500));
             add_combo
                 .logs
-                .push("=== PROCESSING COMPLETE ===".to_string());
-            add_combo.logs.push("Press 'q' to exit".to_string());
+                .push(LogEntry::success("=== PROCESSING COMPLETE ==="));
+            add_combo.logs.push(LogEntry::info("Press 'q' to exit"));
             terminal
                 .draw(|frame| add_combo.draw(frame))
                 .map_err(|e| color_eyre::eyre::eyre!("Terminal error: {}", e))

@@ -1,5 +1,6 @@
 // Import the mods
 
+mod logging;
 mod search;
 mod sorter;
 mod tools;
@@ -22,6 +23,7 @@ use clap::{CommandFactory, Parser, error::Result};
 use yaml_rust2::{self};
 
 use crate::clean_files::CleanLine;
+use crate::logging::test;
 use crate::tools::clean_files;
 
 /// Simple program to greet a person
@@ -158,6 +160,7 @@ impl PassDB {
             Path::new("/home/grimreaper/Desktop/DEV/Rust/project/PassDB/test.txt"),
             &self.db_location,
         );
+        logging::test::new();
         println!("{}", sorter_test.unwrap().sort_optimised_safe().unwrap());
         Ok(())
     }
@@ -169,7 +172,7 @@ impl PassDB {
             self.file_to_sort_location.clone(),
             self.export_results_location.clone(),
         );
-        let _clean = CleanLine::new();
+        let _clean = CleanLine::new("ttt");
     }
 
     fn run_no_menu(&mut self, email: String) -> Result<()> {

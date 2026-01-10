@@ -106,6 +106,7 @@ impl SearchOutput {
                 .draw(|frame| self.draw(frame))
                 .map_err(|e| io::Error::other(format!("{e}")))?;
             let event = crossterm::event::read()?;
+            let event2 = crossterm::event::EventStream::new();
             if let crossterm::event::Event::Key(key) = event {
                 match key.code {
                     KeyCode::Char('q') | KeyCode::Esc => break,
