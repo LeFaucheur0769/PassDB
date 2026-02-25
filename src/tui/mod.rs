@@ -10,4 +10,4 @@ pub use search_combolist::SearchCombolist;
 pub use search_input::SearchInputEmail;
 pub use search_output::SearchOutput;
 pub use tui::tui;
-pub use test_tui::test_tui;
+pub use test_tui::test_fun;

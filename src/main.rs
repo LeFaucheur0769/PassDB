@@ -1,3 +1,8 @@
+// Allowed issues
+// #[allow(unused_variables)]
+// #[allow(noop_method_call)]
+
+
 // Import the mods
 
 mod logging;
@@ -26,7 +31,6 @@ use crate::clean_files::CleanLine;
 use crate::logging::test;
 use crate::tools::clean_files;
 use crate::tui::test_tui::test_fun;
-
 
 /// Simple program to greet a person
 #[derive(Parser, Debug)]
@@ -81,7 +85,7 @@ fn get_default_import_dir() -> PathBuf {
 struct PassDB {
     debug: bool,
     db_location: String,
-    create_db_in_toolFolder: bool,
+    create_db_in_tool_folder: bool,
     export_results_location: String,
     import_location: String,
     print_result_export_file: bool,
@@ -90,7 +94,7 @@ struct PassDB {
     file_to_sort_location: String,
     fiel_to_sort_not_txt_files: String,
     file_urlloginpass_dir: String,
-    addAddFile: bool,
+    add_file: bool,
     logs: Vec<String>,
 }
 
@@ -113,7 +117,7 @@ impl PassDB {
         PassDB {
             debug: config[0]["debug"].as_bool().unwrap(),
             db_location: config[0]["db_location"].as_str().unwrap().to_string(),
-            create_db_in_toolFolder: config[0]["create_db_in_toolFolder"]
+            create_db_in_tool_folder: config[0]["create_db_in_toolFolder"]
                 .as_bool()
                 .unwrap_or(true),
             export_results_location: config[0]["export_results_location"]
@@ -140,11 +144,17 @@ impl PassDB {
                 .as_str()
                 .unwrap_or("to_sort/url_login_pass/")
                 .to_string(),
-            addAddFile: config[0]["addAddFile"].as_bool().unwrap_or(false),
+            add_file: config[0]["add_file"].as_bool().unwrap_or(false),
             logs: vec![],
         }
     }
-    fn test(&mut self) -> color_eyre::Result<()> {
+    fn test(
+        &mut self,
+        import_location: String,
+        db_location: String,
+        file_to_sort_location: String,
+        export_results_location: String,
+    ) -> color_eyre::Result<()> {
         color_eyre::install()?;
         println!("running the module test");
         test_fun()?;
@@ -186,34 +196,6 @@ impl PassDB {
         Ok(())
     }
 
-    fn ensure_dir(&mut self, path: &str) -> Result<bool, String> {
-        if Path::new(path).is_dir() {
-            self.logs.push(format!("Directory {} exists", path));
-            Ok(true)
-        } else {
-            self.logs
-                .push(format!("Directory {} missing, creating...", path));
-            std::fs::create_dir_all(path)
-                .map_err(|e| format!("Failed to create {}: {}", path, e))?;
-            Ok(true)
-        }
-    }
-
-    fn check_if_valid_or_create_dir(&mut self) -> Result<bool, String> {
-        let paths = [
-            self.db_location.clone(),
-            self.export_results_location.clone(),
-            self.import_location.clone(),
-            self.file_to_sort_location.clone(),
-        ];
-
-        for path in paths.iter() {
-            self.ensure_dir(path)?;
-        }
-
-        Ok(true)
-    }
-
     fn run(&mut self) -> color_eyre::Result<()> {
         let args = Args::parse();
 
@@ -221,7 +203,12 @@ impl PassDB {
             self.run_menu();
             Ok(())
         } else if args.test {
-            self.test()?;
+            self.test(
+                self.import_location.clone(),
+                self.db_location.clone(),
+                self.file_to_sort_location.clone(),
+                self.export_results_location.clone(),
+            )?;
             Ok(())
         } else {
             let email = match args.email {
