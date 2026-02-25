@@ -20,7 +20,7 @@ pub fn test_fun() -> color_eyre::Result<()> {
 pub fn test_tui<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<&str> {
     let menu_test = ["test_sorting", "test_searching"];
     let mut state = ListState::default();
-    state.select(Some(1));
+    state.select(Some(0));
     loop {
         terminal
             .draw(|frame| {
@@ -42,7 +42,7 @@ pub fn test_tui<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<&str> {
                     )
                     .highlight_style(Style::default().fg(Color::Yellow))
                     .highlight_symbol(">>");
-                frame.render_widget(list, area);
+                frame.render_stateful_widget(list, chunks[0], &mut state);
             })
             .map_err(|e| io::Error::other(format!("{e}")))?;
         if let Event::Key(key) = event::read()? {
