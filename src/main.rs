@@ -25,6 +25,8 @@ use yaml_rust2::{self};
 use crate::clean_files::CleanLine;
 use crate::logging::test;
 use crate::tools::clean_files;
+use crate::tui::test_tui::test_fun;
+
 
 /// Simple program to greet a person
 #[derive(Parser, Debug)]
@@ -143,25 +145,16 @@ impl PassDB {
         }
     }
     fn test(&mut self) -> color_eyre::Result<()> {
-        //println!("{}", self.import_location);
         color_eyre::install()?;
-        //let _ = search(&mut terminal);
-        //println!("{:#?}", self);
-        //println!("{:#?}", self.debug);
-        //let mut test = tui::tui::SearchOutput::new();
-        //test.run(
-        //    &mut terminal,
-        //    "test".to_string(),
-        //    self.db_location.clone(),
-        //    self.export_results_location.clone(),
-        //)?;
-        //ratatui::restore();
-        let sorter_test = sorter::sorter::Sort::new(
-            Path::new("/home/grimreaper/Desktop/DEV/Rust/project/PassDB/test.txt"),
-            &self.db_location,
-        );
-        logging::test::new();
-        println!("{}", sorter_test.unwrap().sort_optimised_safe().unwrap());
+        println!("running the module test");
+        test_fun()?;
+
+        // let sorter_test = sorter::sorter::Sort::new(
+        //     Path::new("/home/grimreaper/Desktop/DEV/Rust/project/PassDB/test.txt"),
+        //     &self.db_location,
+        // );
+        // logging::test::new();
+        // println!("{}", sorter_test.unwrap().sort_optimised_safe().unwrap());
         Ok(())
     }
 

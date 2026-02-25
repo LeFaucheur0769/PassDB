@@ -11,7 +11,7 @@ pub fn search() {
 pub struct Searcher {
     db_dir: String,
     export_dir: String,
-    files: Vec<PathBuf>, // <- change here
+    files: Vec<PathBuf>,
     output: Vec<String>,
     email_to_search: String,
     total_bytes: u64,

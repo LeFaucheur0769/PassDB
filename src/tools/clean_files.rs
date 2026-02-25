@@ -11,9 +11,9 @@ impl CleanFile {
     pub fn new() {}
 
     pub fn clean_file() {
-        let path = "";
-        let mut logs: Vec<LogEntry> = vec![];
-        let file = OpenOptions::new().read(true).open(path).unwrap();
+        let path = ""; // TODO
+        let mut logs: Vec<LogEntry> = vec![]; // Vec used to store the logs
+        let file = OpenOptions::new().read(true).open(path).unwrap(); 
         let reader = BufReader::new(file);
         for (i, line) in reader.lines().enumerate() {
             match line {
