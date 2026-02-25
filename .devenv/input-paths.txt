@@ -1,0 +1,7 @@
+/home/grimreaper/Desktop/DEV/Rust/project/PassDB/.devenv/flake.json
+/home/grimreaper/Desktop/DEV/Rust/project/PassDB/.devenv.flake.nix
+/home/grimreaper/Desktop/DEV/Rust/project/PassDB/.env
+/home/grimreaper/Desktop/DEV/Rust/project/PassDB/devenv.local.nix
+/home/grimreaper/Desktop/DEV/Rust/project/PassDB/devenv.lock
+/home/grimreaper/Desktop/DEV/Rust/project/PassDB/devenv.nix
+/home/grimreaper/Desktop/DEV/Rust/project/PassDB/devenv.yaml
