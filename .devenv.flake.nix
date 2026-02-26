@@ -4,20 +4,20 @@
       vars = {
   version = "1.11.2";
   system = "x86_64-linux";
-  devenv_root = "/home/grimreaper/Desktop/DEV/Rust/project/PassDB";
-  project_input_ref = "path:/home/grimreaper/Desktop/DEV/Rust/project/PassDB";
-  devenv_dotfile = "/home/grimreaper/Desktop/DEV/Rust/project/PassDB/.devenv.n5R8aA";
-  devenv_dotfile_path = ./.devenv.n5R8aA;
+  devenv_root = "/home/grimreaper/PassDB";
+  project_input_ref = "path:/home/grimreaper/PassDB";
+  devenv_dotfile = "/home/grimreaper/PassDB/.devenv.SKFTaK";
+  devenv_dotfile_path = ./.devenv.SKFTaK;
   devenv_tmpdir = "/run/user/1000";
-  devenv_runtime = "/run/user/1000/devenv-db2e230";
+  devenv_runtime = "/run/user/1000/devenv-83c159b";
   devenv_istesting = true;
   devenv_direnvrc_latest_version = 1;
   container_name = null;
   active_profiles = [
   ];
-  hostname = "cachyos";
+  hostname = "nixos-laptop";
   username = "grimreaper";
-  git_root = "/home/grimreaper/Desktop/DEV/Rust/project/PassDB";
+  git_root = "/home/grimreaper/PassDB";
   secretspec = null;
 };
     in
@@ -41,20 +41,20 @@
       vars = {
   version = "1.11.2";
   system = "x86_64-linux";
-  devenv_root = "/home/grimreaper/Desktop/DEV/Rust/project/PassDB";
-  project_input_ref = "path:/home/grimreaper/Desktop/DEV/Rust/project/PassDB";
-  devenv_dotfile = "/home/grimreaper/Desktop/DEV/Rust/project/PassDB/.devenv.n5R8aA";
-  devenv_dotfile_path = ./.devenv.n5R8aA;
+  devenv_root = "/home/grimreaper/PassDB";
+  project_input_ref = "path:/home/grimreaper/PassDB";
+  devenv_dotfile = "/home/grimreaper/PassDB/.devenv.SKFTaK";
+  devenv_dotfile_path = ./.devenv.SKFTaK;
   devenv_tmpdir = "/run/user/1000";
-  devenv_runtime = "/run/user/1000/devenv-db2e230";
+  devenv_runtime = "/run/user/1000/devenv-83c159b";
   devenv_istesting = true;
   devenv_direnvrc_latest_version = 1;
   container_name = null;
   active_profiles = [
   ];
-  hostname = "cachyos";
+  hostname = "nixos-laptop";
   username = "grimreaper";
-  git_root = "/home/grimreaper/Desktop/DEV/Rust/project/PassDB";
+  git_root = "/home/grimreaper/PassDB";
   secretspec = null;
 };
       devenv =
