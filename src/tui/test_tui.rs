@@ -15,11 +15,26 @@ use ratatui::{
     widgets::{Block, Borders, List, ListItem, ListState},
 };
 
-#[test]
+// #[test]
 pub fn test_fun() -> color_eyre::Result<()> {
     let mut terminal = ratatui::init();
-    let result = TestApp::test_tui(&mut terminal)?;
-    result.to_string();
+    let mut test_app = TestApp::new();
+    let mut test_sorting = TestApp::new();
+    let result = test_app.test_tui(&mut terminal)?;
+    match result {
+        "test_sorting" => test_sorting.test_sorting(),
+        "detecting_if_line_is_ulp" => {
+            ratatui::restore();
+            use text_io::read;
+            println!("Line to sort : ");
+            let line: String = read!("{}\n");
+            let result = test_sorting.detecting_if_line_is_ulp(line);
+            println!("result : {}\n", result);
+        }
+        other => {
+            eprintln!("Unknown option: {}", other)
+        }
+    }
     ratatui::restore();
     println!("Result : {}", result);
     Ok(())
@@ -34,7 +49,6 @@ fn get_default_import_dir() -> PathBuf {
     exe_dir.join("import")
 }
 struct TestApp {
-    
     debug: bool,
     db_location: String,
     create_db_in_tool_folder: bool,
@@ -51,8 +65,8 @@ struct TestApp {
 }
 
 impl TestApp {
-    // Just the new fn used to simulate the main app and test things 
-    pub fn new(self) -> Self {
+    // Just the new fn used to simulate the main app and test things
+    pub fn new() -> Self {
         let config_location = "passdb.yml";
         let read_config =
             fs::read_to_string(&config_location).expect("Failed to read the config location");
@@ -63,7 +77,6 @@ impl TestApp {
             .as_str()
             .map(PathBuf::from)
             .unwrap_or_else(|| get_default_import_dir());
-
 
         // Convert to absolute path
         let import_location = import_path.canonicalize().unwrap_or(import_path); // fallback if folder doesn't exist yet
@@ -103,8 +116,8 @@ impl TestApp {
     }
 
     // Just the test tui
-    pub fn test_tui<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<&str> {
-        let menu_test = ["test_sorting", "test_searching"];
+    pub fn test_tui<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> io::Result<&str> {
+        let menu_test = ["test_sorting", "detecting_if_line_is_ulp", "test_searching"];
         let mut state = ListState::default();
         state.select(Some(0));
         loop {
@@ -169,8 +182,6 @@ impl TestApp {
         Ok("exit")
     }
 
-
-
     fn ensure_dir(&mut self, path: &str) -> Result<bool, String> {
         if Path::new(path).is_dir() {
             self.logs.push(format!("Directory {} exists", path));
@@ -183,7 +194,16 @@ impl TestApp {
             Ok(true)
         }
     }
+    fn test_sorting(&mut self) {
+        /// The goal of this function is to sort the email.txt file in semple
+        /// It should be able to store a url:logging:password as logging:password:url
+        todo!()
+    }
 
+    fn detecting_if_line_is_ulp(&mut self, line: String) -> String {
+        let result = line;
+        return (result);
+    }
     // fn check_for_valid_app_dir() {
     //     let db_dir =
     // }

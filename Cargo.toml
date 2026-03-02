@@ -15,5 +15,6 @@ tui-input = {version = "0.14.0", features = ["crossterm"], default-features = fa
 rayon = "1.11.0"
 dashmap = {version = "7.0.0-rc", features = ["rayon"]}
 strip-ansi-escapes = "0.1"
+text_io = "0.1.13" 
 
 
