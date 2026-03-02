@@ -2,12 +2,12 @@
 // #[allow(unused_variables)]
 // #[allow(noop_method_call)]
 
-
 // Import the mods
 
 mod logging;
 mod search;
 mod sorter;
+mod test_utils;
 mod tools;
 mod tui;
 

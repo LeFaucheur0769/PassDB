@@ -1,4 +1,5 @@
-use crate::logging;
+// use crate::logging;
+use crate::test_utils;
 
 use std::{
     env::{self, Args},
@@ -22,7 +23,10 @@ pub fn test_fun() -> color_eyre::Result<()> {
     let mut test_sorting = TestApp::new();
     let result = test_app.test_tui(&mut terminal)?;
     match result {
-        "test_sorting" => test_sorting.test_sorting(),
+        "test_sorting" => {
+            ratatui::restore();
+            test_utils::test_sorting();
+        }
         "detecting_if_line_is_ulp" => {
             ratatui::restore();
             use text_io::read;
@@ -193,11 +197,6 @@ impl TestApp {
                 .map_err(|e| format!("Failed to create {}: {}", path, e))?;
             Ok(true)
         }
-    }
-    fn test_sorting(&mut self) {
-        /// The goal of this function is to sort the email.txt file in semple
-        /// It should be able to store a url:logging:password as logging:password:url
-        todo!()
     }
 
     fn detecting_if_line_is_ulp(&mut self, line: String) -> String {
