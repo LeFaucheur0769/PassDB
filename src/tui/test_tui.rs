@@ -121,7 +121,12 @@ impl TestApp {
 
     // Just the test tui
     pub fn test_tui<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> io::Result<&str> {
-        let menu_test = ["test_sorting", "detecting_if_line_is_ulp", "test_searching"];
+        let menu_test = [
+            "test_sorting",
+            "detecting_if_line_is_ulp",
+            "test_searching",
+            "check",
+        ];
         let mut state = ListState::default();
         state.select(Some(0));
         loop {
