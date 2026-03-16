@@ -1,8 +1,6 @@
-use ratatui::widgets::List;
-
+/// The goal of this function is to sort the email.txt file in semple
+/// It should be able to store a url:logging:password as logging:password:url
 pub fn test_sorting() {
-    /// The goal of this function is to sort the email.txt file in semple
-    /// It should be able to store a url:logging:password as logging:password:url
     let email = [
         "https://test.com:username:password",
         "username:password",
@@ -93,4 +91,9 @@ fn check_for_separators(login: &str, is_ulp: bool) {
             println!("{} invalid format for '{}'", login, separator)
         }
     }
+}
+
+///
+fn reorder_ulp_to_lpu(login: &str, separator: &char) {
+    let splited_login = 
 }
