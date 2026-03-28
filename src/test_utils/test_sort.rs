@@ -95,5 +95,6 @@ fn check_for_separators(login: &str, is_ulp: bool) {
 
 ///
 fn reorder_ulp_to_lpu(login: &str, separator: &char) {
-    let splited_login = 
+    //let splited_login =
+    return;
 }
