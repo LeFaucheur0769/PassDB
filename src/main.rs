@@ -92,7 +92,7 @@ struct PassDB {
     check_if_valid_combolist: bool,
     nbr_of_check_per_file: i64,
     file_to_sort_location: String,
-    fiel_to_sort_not_txt_files: String,
+    file_to_sort_not_txt_files: String,
     file_urlloginpass_dir: String,
     add_file: bool,
     logs: Vec<String>,
@@ -136,7 +136,7 @@ impl PassDB {
                 .as_str()
                 .unwrap_or("to_sort/")
                 .to_string(),
-            fiel_to_sort_not_txt_files: config[0]["fiel_to_sort_not_txt_files"]
+            file_to_sort_not_txt_files: config[0]["fiel_to_sort_not_txt_files"]
                 .as_str()
                 .unwrap_or("to_sort/not_txt/")
                 .to_string(),
