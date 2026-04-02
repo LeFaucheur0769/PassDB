@@ -1,4 +1,5 @@
 use crossterm::style::Stylize;
+use ratatui::widgets::List;
 
 /// The goal of this function is to sort the email.txt file in semple
 /// It should be able to store a url:logging:password as logging:password:url
@@ -25,14 +26,13 @@ fn sorting_funct(login: &str) {
     // Check if contains url parts and if yes clean them
     if check_if_contains_url(login) {
         cleaned = clean_url_in_login(login);
-    } else { cleaned = login.to_string() }
+    } else {
+        cleaned = login.to_string()
+    }
 
-    check_if_contains_url(cleaned.as_str());
+    separator_function_tmp_name(cleaned.as_str());
 
-
-
-
-   /* if login.contains("https://") {
+    /* if login.contains("https://") {
         // If email contains https://, then removes the https:// to prevent issues with the :
         cleaned = login.replace("https://", "");
     } else if login.contains("http://") {
@@ -45,7 +45,6 @@ fn sorting_funct(login: &str) {
     }*/
     /*let parts: Vec<&str> = cleaned.split(":").collect();*/
     // let reordered = format!("{} {} {}", parts[0], parts[1], parts[2]);
-
 
     println!("email : {}", cleaned);
     // println!("split email : {:?}", parts);
@@ -79,13 +78,12 @@ fn clean_url_in_login(login: &str) -> String {
     cleaned
 }
 
-/// Check if the login contains separators and if not, return invalid format
-/// Return 0 if no separator and the separator
-/// Return 1 if format is lp (one separator) and the separator
-/// Return 2 if format is ulp (two separators) and the separator
-fn check_for_separators(login: &str) {
+/// Temporary separator function not optimized with a lot of code in it
+/// Needs to be torn down soon and split
+fn separator_function_tmp_name(login: &str) {
     // The available separators
     let list_separators = [":", ";", ",", " "];
+    let mut valid_separators: Vec<(String, u8)> = vec![];
 
     // Check for separators
     for separator in list_separators {
@@ -96,11 +94,12 @@ fn check_for_separators(login: &str) {
         }
         // Todo if the format is a valid lp
         if separator_appearance == 1 {
-            todo!()
+            // Add the separator and the number of appearance
+            valid_separators.push((separator.to_string(), separator_appearance as u8));
         }
         // Todo if the format is a valid ulp
         if separator_appearance == 2 {
-            todo!()
+            valid_separators.push((separator.to_string(), separator_appearance as u8));
         }
 
         // Return invalid format if more than 2 separators
@@ -109,6 +108,49 @@ fn check_for_separators(login: &str) {
             println!("{} invalid format for '{}'", login, separator)
         }
     }
+
+    // Check if multiple separators
+    let appears_once_or_twice: Vec<u8> = valid_separators
+        .iter()
+        .filter(|(_, value)| *value == 1 || *value == 2)
+        .map(|(_, value)| *value)
+        .collect();
+
+    // Check if only one separator appears once or twice
+    if appears_once_or_twice.iter().count() != 1 {
+        if valid_separators
+            .iter()
+            .filter(|(_, value)| *value == 1 || *value == 2)
+            .count()
+            == 1
+            && valid_separators
+                .iter()
+                .filter(|(_, value)| *value > 2)
+                .count()
+                == 1
+        {
+            /*
+            Todo
+                Considers that there is a strange thing but separators are still found so the line is good to import
+                return login
+            */
+        }
+    } else {
+        // There is only one separator that appears once or twice
+        if appears_once_or_twice.iter().any(|&x| x == 2) {
+            /*
+            Todo
+                Considered as ulp
+            */
+        } else {
+            /*
+            Todo
+                considered as valid combo, good to import
+            */
+        }
+    }
+
+    // split at the separator if doable
 }
 
 ///
