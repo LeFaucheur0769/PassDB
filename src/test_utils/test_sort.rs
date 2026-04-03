@@ -11,6 +11,7 @@ pub fn test_sorting() {
         "username password",
         "email@test.com password",
         "username,password",
+        "username:password;otherfield;age;test;location;other"
     ];
     for login in email.iter() {
         sorting_funct(login);
@@ -30,7 +31,7 @@ fn sorting_funct(login: &str) {
         cleaned = login.to_string()
     }
 
-    separator_function_tmp_name(cleaned.as_str());
+    println!("{}", separator_function_tmp_name(cleaned.as_str()));
 
     /* if login.contains("https://") {
         // If email contains https://, then removes the https:// to prevent issues with the :
@@ -46,7 +47,7 @@ fn sorting_funct(login: &str) {
     /*let parts: Vec<&str> = cleaned.split(":").collect();*/
     // let reordered = format!("{} {} {}", parts[0], parts[1], parts[2]);
 
-    println!("email : {}", cleaned);
+    // println!("email : {}", cleaned);
     // println!("split email : {:?}", parts);
 }
 
@@ -80,36 +81,37 @@ fn clean_url_in_login(login: &str) -> String {
 
 /// Temporary separator function not optimized with a lot of code in it
 /// Needs to be torn down soon and split
-fn separator_function_tmp_name(login: &str) {
+fn separator_function_tmp_name(login: &str) -> String {
     // The available separators
-    let list_separators = [":", ";", ",", " "];
-    let mut valid_separators: Vec<(String, u8)> = vec![];
+    let list_separators = [':', ';', ',', ' '];
+    let mut valid_separators: Vec<(char, u8)> = vec![];
+    let mut output: String = "".to_string();
 
     // Check for separators
     for separator in list_separators {
-        let separator_appearance = login.chars().filter(|x| x.to_string() == separator).count();
+        let separator_appearance = login.chars().filter(|x| *x == separator).count();
         // Return invalid format if no separators
         if separator_appearance == 0 {
-            println!("{} invalid format for '{}'", login, separator)
+            // println!("{} invalid format for '{}'", login, separator)
         }
         // Todo if the format is a valid lp
         if separator_appearance == 1 {
             // Add the separator and the number of appearance
-            valid_separators.push((separator.to_string(), separator_appearance as u8));
+            valid_separators.push((separator, separator_appearance as u8));
         }
         // Todo if the format is a valid ulp
         if separator_appearance == 2 {
-            valid_separators.push((separator.to_string(), separator_appearance as u8));
+            valid_separators.push((separator, separator_appearance as u8));
         }
 
         // Return invalid format if more than 2 separators
         // Might have to do something for the stealer logs
         if separator_appearance > 2 {
-            println!("{} invalid format for '{}'", login, separator)
+            // println!("{} invalid format for '{}'", login, separator)
         }
     }
 
-    // Check if multiple separators
+    // Check if multiple separators and add the number to a vec of u8
     let appears_once_or_twice: Vec<u8> = valid_separators
         .iter()
         .filter(|(_, value)| *value == 1 || *value == 2)
@@ -134,6 +136,9 @@ fn separator_function_tmp_name(login: &str) {
                 Considers that there is a strange thing but separators are still found so the line is good to import
                 return login
             */
+            output = login.to_string();
+
+
         }
     } else {
         // There is only one separator that appears once or twice
@@ -142,14 +147,31 @@ fn separator_function_tmp_name(login: &str) {
             Todo
                 Considered as ulp
             */
+            for (sep, c) in valid_separators {
+                if c == 2 {
+                    let split = login.split(sep).collect::<Vec<&str>>();
+                    if split.len() == 3 {
+                        /*
+                      Considers that the format of the import is ulp and so moving it to lpu
+                      */
+                            return(format!("{}:{}:{}", split[1], split[2], split[0]))
+
+                    } else {
+
+                        // println!("{} invalid format for '{}'", login, sep);
+                    }
+
+                }
+            }
         } else {
             /*
             Todo
                 considered as valid combo, good to import
             */
+            return login.to_string()
         }
     }
-
+    output
     // split at the separator if doable
 }
 

@@ -97,7 +97,7 @@ impl HashFile {
         let mut hashdb = fs::OpenOptions::new()
             .create(true)
             .append(true)
-            .open(&self.hashdb)?; // open the file using openoptions to open it in append mode or create the file if it doesn't exists
+            .open(&self.hashdb)?; // open the file using openoptions to open it in append mode or create the file if it doesn't exist
 
         hashdb.write_all(format!("{:x}\n", result).as_bytes())?; // append the hash and add a newline for the next hash
 
@@ -115,7 +115,7 @@ pub struct Sort {
 
 impl Sort {
     //! Sort function
-    //! This function is use to sort the file
+    //! This function is used to sort the file
     //! It accepts as input the path of the file to sort as &Path and db_dir as &str
     pub fn new(path: &Path, db_dir: &str) -> color_eyre::Result<Self> {
         let file = File::open(path)?; // open the file to sort
@@ -136,7 +136,7 @@ impl Sort {
             file_name,
         })
     }
-    /// Sort the file in an optimised and safe manner
+    /// Sort the file in an optimized and safe manner
     /// This function will sort the file in two passes:
     /// First pass: collect all unique groups
     /// Second pass: write each group to its file (one at a time)
