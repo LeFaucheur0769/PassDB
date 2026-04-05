@@ -28,6 +28,7 @@ impl HashFile {
         let file = File::open(path)?; // Open the file specified in path
         let total_size = std::fs::metadata(path)?.len(); // Get the total size of the file to visualize the progress
         let hashdb = db_location.to_string() + "/hashdb"; // get the locatation of the hashdb file to then save the calculated hash of the file
+        let output_folder = db_location.to_string() + "/output";
 
         Ok(HashFile {
             file,
@@ -73,7 +74,7 @@ impl HashFile {
     /// It returns a tuple containing the hash calculated and a boolean indicating if the hash already existed in the hashdb.
     pub fn finalize(&self) -> color_eyre::Result<(String, bool)> {
         let cloned = self.hasher.clone();
-        // clone the hasher to manipulate it later without borowing issues
+        // clone the hasher to manipulate it later without borrowing issues
 
         let result = cloned.finalize(); // get the result of
         // the hash to use it multiple times without rerunning the hash process
@@ -127,8 +128,7 @@ impl Sort {
             .ok_or_else(|| color_eyre::eyre::eyre!("Invalid file name"))?
             .to_string(); // get the file_name or return an error is the name if invalid
         let output_dir =
-            "/home/grimreaper/Desktop/DEV/Rust/project/PassDB/output/sorted/".to_string();
-        // Hard-coded output dir needs to be changed later
+            db_dir.to_string() + "/sorted/";
         Ok(Sort {
             file,
             total_size,
@@ -151,7 +151,10 @@ impl Sort {
         //println!("First pass: collecting groups...");
         for line_result in reader.lines() {
             let line = line_result?; // get the line and propagate the error if there is one
-            let trimmed = line.trim(); // trime the line to remove blank lines and whitespaces
+
+            // Run the line through the checking process and return an empty line if invalid
+            let cleaned_line = self.sorting_funct(line.as_str());
+            let trimmed = cleaned_line.trim(); // trime the line to remove blank lines and whitespaces
             if trimmed.is_empty() {
                 continue; // Next line if line is empty
             }
@@ -208,4 +211,138 @@ impl Sort {
     // pub fn finalize(&mut self) -> color_eyre::Result<String> {
     // Ok("Succesfull".to_string())
     // }
+
+    pub fn check_if_contains_url(&self, login: &str) -> bool {
+        let url_parts_to_check = ["https://", "http://", "www."];
+        for part_to_check in url_parts_to_check {
+            if login.contains(part_to_check) {
+                return true;
+            }
+        }
+        false
+    }
+    pub fn sorting_funct(&self, login: &str) -> String {
+        let mut cleaned;
+        let separators = [" ", ":", ",", ";"];
+
+        // Check if contains url parts and if yes clean them
+        if self.check_if_contains_url(login) {
+            cleaned = self.clean_url_in_login(login);
+        } else {
+            cleaned = login.to_string()
+        }
+
+        self.separator_function_tmp_name(cleaned.as_str())
+
+    }
+
+    pub fn clean_url_in_login(&self, login: &str) -> String {
+        let mut cleaned: String;
+
+        // removes the https:// to prevent issues with the :
+        cleaned = login.replace("https://", "");
+
+        //  removes the http:// to prevent issues with the :
+        cleaned = cleaned.replace("http://", "");
+
+        // If the login does not contain any strange formating, just add it to the db
+        cleaned = cleaned.trim().to_string();
+
+        cleaned
+    }
+
+    pub fn separator_function_tmp_name(&self, login: &str) -> String {
+        // The available separators
+        let list_separators = [':', ';', ',', ' '];
+        let mut valid_separators: Vec<(char, u8)> = vec![];
+        let mut output: String = "".to_string();
+
+        // Check for separators
+        for separator in list_separators {
+            let separator_appearance = login.chars().filter(|x| *x == separator).count();
+            // Return invalid format if no separators
+            if separator_appearance == 0 {
+                // println!("{} invalid format for '{}'", login, separator)
+            }
+            // Todo if the format is a valid lp
+            if separator_appearance == 1 {
+                // Add the separator and the number of appearance
+                valid_separators.push((separator, separator_appearance as u8));
+            }
+            // Todo if the format is a valid ulp
+            if separator_appearance == 2 {
+                valid_separators.push((separator, separator_appearance as u8));
+            }
+
+            // Return invalid format if more than 2 separators
+            // Might have to do something for the stealer logs
+            if separator_appearance > 2 {
+                // println!("{} invalid format for '{}'", login, separator)
+            }
+        }
+
+        // Check if multiple separators and add the number to a vec of u8
+        let appears_once_or_twice: Vec<u8> = valid_separators
+            .iter()
+            .filter(|(_, value)| *value == 1 || *value == 2)
+            .map(|(_, value)| *value)
+            .collect();
+
+        // Check if only one separator appears once or twice
+        if appears_once_or_twice.iter().count() != 1 {
+            if valid_separators
+                .iter()
+                .filter(|(_, value)| *value == 1 || *value == 2)
+                .count()
+                == 1
+                && valid_separators
+                .iter()
+                .filter(|(_, value)| *value > 2)
+                .count()
+                == 1
+            {
+                /*
+                Todo
+                    Considers that there is a strange thing but separators are still found so the line is good to import
+                    return login
+                */
+                output = login.to_string();
+
+
+            }
+        } else {
+            // There is only one separator that appears once or twice
+            if appears_once_or_twice.iter().any(|&x| x == 2) {
+                /*
+                Todo
+                    Considered as ulp
+                */
+                for (sep, c) in valid_separators {
+                    if c == 2 {
+                        let split = login.split(sep).collect::<Vec<&str>>();
+                        if split.len() == 3 {
+                            /*
+                          Considers that the format of the import is ulp and so moving it to lpu
+                          */
+                            return(format!("{}:{}:{}", split[1], split[2], split[0]))
+
+                        } else {
+
+                            // println!("{} invalid format for '{}'", login, sep);
+                        }
+
+                    }
+                }
+            } else {
+                /*
+                Todo
+                    considered as valid combo, good to import
+                */
+                return login.to_string()
+            }
+        }
+        output
+        // split at the separator if doable
+    }
+
 }

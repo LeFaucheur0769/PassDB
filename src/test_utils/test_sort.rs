@@ -20,7 +20,7 @@ pub fn test_sorting() {
     }
 }
 
-fn sorting_funct(login: &str) {
+fn sorting_funct(login: &str) -> String {
     let mut cleaned;
     let separators = [" ", ":", ",", ";"];
 
@@ -31,24 +31,8 @@ fn sorting_funct(login: &str) {
         cleaned = login.to_string()
     }
 
-    println!("{}", separator_function_tmp_name(cleaned.as_str()));
+    separator_function_tmp_name(cleaned.as_str())
 
-    /* if login.contains("https://") {
-        // If email contains https://, then removes the https:// to prevent issues with the :
-        cleaned = login.replace("https://", "");
-    } else if login.contains("http://") {
-        // If email contains http://, then removes the http:// to prevent issues with the :
-        cleaned = login.replace("http://", "");
-    } else {
-        // If the login does not contain any strange formating, just add it to the db
-        cleaned = login.trim().to_string();
-        println!("{} is fine", cleaned);
-    }*/
-    /*let parts: Vec<&str> = cleaned.split(":").collect();*/
-    // let reordered = format!("{} {} {}", parts[0], parts[1], parts[2]);
-
-    // println!("email : {}", cleaned);
-    // println!("split email : {:?}", parts);
 }
 
 /// Check if the login contains any url sign and if yes, return true

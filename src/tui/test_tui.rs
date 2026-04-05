@@ -35,6 +35,14 @@ pub fn test_fun() -> color_eyre::Result<()> {
             let result = test_sorting.detecting_if_line_is_ulp(line);
             println!("result : {}\n", result);
         }
+        "get_current_dir" => {
+            ratatui::restore();
+            println!("current dir is : {}", test_utils::test_write::get_current_dir())
+        },
+        "check_for_config_folders" => {
+            ratatui::restore();
+            test_utils::test_write::check_for_config_folders();
+        }
         other => {
             eprintln!("Unknown option: {}", other)
         }
@@ -125,6 +133,8 @@ impl TestApp {
             "test_sorting",
             "detecting_if_line_is_ulp",
             "test_searching",
+            "get_current_dir",
+            "check_for_config_folders",
             "check",
         ];
         let mut state = ListState::default();

@@ -10,7 +10,7 @@ mod sorter;
 mod test_utils;
 mod tools;
 mod tui;
-
+pub mod init;
 // Import clap to use arguments with PassDB
 
 use std::{
@@ -20,7 +20,7 @@ use std::{
     path::PathBuf,
     vec,
 };
-
+use std::process::exit;
 use clap::{CommandFactory, Parser, error::Result};
 
 // Imports
@@ -28,6 +28,8 @@ use clap::{CommandFactory, Parser, error::Result};
 use yaml_rust2::{self};
 
 use crate::clean_files::CleanLine;
+use crate::init::check_vaild_config_file::check_config_file_exists;
+use crate::init::check_valid_install_folders::check_for_config_folders;
 use crate::logging::test;
 use crate::tools::clean_files;
 use crate::tui::test_tui::test_fun;
@@ -226,8 +228,20 @@ impl PassDB {
     }
 }
 
+/// Function used to check if the installation is valid before running anything
+fn init_setup() -> color_eyre::Result<()> {
+    if !check_config_file_exists(Args::parse().config)? {
+        eprintln!("Config file does not exist");
+        exit(1)
+    }
+    check_for_config_folders();
+    Ok(())
+}
 fn main() -> color_eyre::Result<()> {
+    init_setup()?;
     let mut passdb = PassDB::new();
     passdb.run()?;
     Ok(())
+
+
 }
