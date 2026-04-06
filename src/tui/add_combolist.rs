@@ -13,6 +13,7 @@ use std::path;
 use std::sync::mpsc::{Receiver, Sender, TryRecvError, channel};
 use std::thread;
 use std::time::{Duration, Instant};
+use crate::log;
 
 #[derive(Debug)]
 enum WorkerProgress {
@@ -224,6 +225,8 @@ pub fn add_combolist<B: Backend>(
                 if !add_combo.files.is_empty() {
                     add_combo.progress_total =
                         add_combo.processed_files.len() as f64 / add_combo.files.len() as f64;
+                } else {
+                    add_combo.logs.push(LogEntry::error("No more files to process"));
                 }
 
                 // If this is the current file, move to next unprocessed one
@@ -263,7 +266,7 @@ pub fn add_combolist<B: Backend>(
                             )));
                         }
                     } else {
-                        is_processing = false;
+                        // is_processing = false; Was causing an issue where the message was displayed before actually finishing
                         add_combo
                             .logs
                             .push(LogEntry::success("All files processed!"));
@@ -272,7 +275,7 @@ pub fn add_combolist<B: Backend>(
             }
             Ok(WorkerProgress::SortCompleted(file_index, result)) => match result {
                 Ok(message) => {
-                    if file_index < add_combo.files.len() {
+                    if file_index <= add_combo.files.len() {
                         add_combo.logs.push(LogEntry::success(format!(
                             "Successfully sorted file {:?}: {:?}",
                             add_combo.files[file_index].display(),
@@ -281,7 +284,7 @@ pub fn add_combolist<B: Backend>(
                     }
                 }
                 Err(e) => {
-                    if file_index < add_combo.files.len() {
+                    if file_index <= add_combo.files.len() {
                         add_combo.logs.push(LogEntry::error(format!(
                             "Sort error for file {:?}: {:?}",
                             add_combo.files[file_index].display(),
@@ -387,7 +390,7 @@ pub fn add_combolist<B: Backend>(
         }
 
         // Step 4: Check if we're done
-        if !is_processing && add_combo.processed_files.len() >= add_combo.files.len() {
+        if !is_processing {
             // Small delay to let final messages come through
             thread::sleep(Duration::from_millis(500));
             add_combo
@@ -441,9 +444,11 @@ fn process_files_worker(
     let mut skip_current = false;
 
     for (file_index, file_path) in files.iter().enumerate() {
+        log!("before should stop");
         if should_stop {
             break;
         }
+        log!("checking file {}", file_path.to_string_lossy());
 
         // Reset skip flag for new file
         skip_current = false;
@@ -470,6 +475,7 @@ fn process_files_worker(
         }
 
         // Process current file
+        log!("Processing hash of file {}", file_path.to_string_lossy());
         if let Ok(mut hashfile) = sorter::HashFile::new(file_path, &db_location) {
             let mut file_processed = false;
 
@@ -516,7 +522,9 @@ fn process_files_worker(
                         ));
 
                         // If it's a new file, sort it
+                        log!("Here starts the sorting process");
                         if !file_exist {
+                            log!("The file did not exist and is being sorted");
                             match sorter::Sort::new(file_path, &db_location) {
                                 Ok(mut sorter) => {
                                     // println!("DEBUG: Starting to sort file {:?}", file_path);

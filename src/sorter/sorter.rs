@@ -5,7 +5,7 @@ use std::io::BufWriter;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::result::Result::Ok;
-
+use crate::log;
 pub fn sanitize_filename(s: &str) -> String {
     //! Function used to sanitize_filename and prevent the creation of wrong files
     //!  Accept as input a str and return a sanitized string
@@ -119,6 +119,7 @@ impl Sort {
     //! This function is used to sort the file
     //! It accepts as input the path of the file to sort as &Path and db_dir as &str
     pub fn new(path: &Path, db_dir: &str) -> color_eyre::Result<Self> {
+        log!("Creating Sort {}", path.to_string_lossy());
         let file = File::open(path)?; // open the file to sort
         let total_size = std::fs::metadata(path)?.len(); // get the size of the file
         // Get just the file name as a String
@@ -127,8 +128,8 @@ impl Sort {
             .and_then(|name| name.to_str())
             .ok_or_else(|| color_eyre::eyre::eyre!("Invalid file name"))?
             .to_string(); // get the file_name or return an error is the name if invalid
-        let output_dir =
-            db_dir.to_string() + "/sorted/";
+        let output_dir = format!("{}/sorted/", db_dir.trim_end_matches('/'));
+        log!("{}", output_dir);
         Ok(Sort {
             file,
             total_size,
@@ -141,32 +142,47 @@ impl Sort {
     /// First pass: collect all unique groups
     /// Second pass: write each group to its file (one at a time)
     pub fn sort_optimised_safe(&mut self) -> color_eyre::Result<String> {
+        log!("Sort optimised safe");
         fs::create_dir_all(&self.output_dir)?;
 
         // First pass: collect all unique groups
         let mut groups: HashMap<String, Vec<String>> = HashMap::new(); // create a hashmap and vec<string group> to process the file
         let reader = BufReader::new(&self.file);
-
         // First pass: collect all unique groups
         //println!("First pass: collecting groups...");
-        for line_result in reader.lines() {
-            let line = line_result?; // get the line and propagate the error if there is one
+        log!("First pass: collecting groups");
+
+        for line_result in reader.split(b'\n') {
+            let bytes = match line_result {
+                Ok(b) => b,
+                Err(e) => { log!("Read error: {}", e); continue; }
+            };
+            // Lossily convert - replaces invalid UTF-8 chars with ?
+            let line = String::from_utf8_lossy(&bytes).into_owned();
 
             // Run the line through the checking process and return an empty line if invalid
             let cleaned_line = self.sorting_funct(line.as_str());
+            // log!("Cleaned line : {}", cleaned_line);
             let trimmed = cleaned_line.trim(); // trime the line to remove blank lines and whitespaces
+
+            // log!("trimmed : {}", trimmed);
+
             if trimmed.is_empty() {
+                // log!("After trim, the line was empty");
                 continue; // Next line if line is empty
             }
 
             // If the line was not empty
             let first_3 = trimmed.chars().take(3).collect::<String>();
             let sanitized = sanitize_filename(&first_3);
+            // log!("Sanitized file name with 3 chars {}", sanitized);
             if sanitized.is_empty() {
+                log!("After sanitize, the file was empty");
                 continue; // If all the characters pass the line
             }
 
             // Add the line to the corresponding group
+
             groups
                 .entry(sanitized)
                 .or_insert_with(Vec::new)
@@ -174,8 +190,13 @@ impl Sort {
         }
 
         // Second pass: write each group to its file (one at a time)
+        log!("Second pass: sorting");
+
         let mut file_count = 0;
         let total_groups = groups.len();
+
+        log!("Wrote {} groups", total_groups);
+
 
         // Second pass: write each group to its file (one at a time)
         for (i, (group_name, lines)) in groups.into_iter().enumerate() {

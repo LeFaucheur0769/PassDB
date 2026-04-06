@@ -8,7 +8,7 @@ mod logging;
 mod search;
 mod sorter;
 mod test_utils;
-mod tools;
+pub mod tools;
 mod tui;
 pub mod init;
 // Import clap to use arguments with PassDB
@@ -33,6 +33,7 @@ use crate::init::check_valid_install_folders::check_for_config_folders;
 use crate::logging::test;
 use crate::tools::clean_files;
 use crate::tui::test_tui::test_fun;
+use crate::tools::logs::init_log;
 
 /// Simple program to greet a person
 #[derive(Parser, Debug)]
@@ -177,7 +178,7 @@ impl PassDB {
             self.file_to_sort_location.clone(),
             self.export_results_location.clone(),
         );
-        let _clean = CleanLine::new("ttt");
+        // let _clean = CleanLine::new("ttt");
     }
 
     fn run_no_menu(&mut self, email: String) -> Result<()> {
@@ -239,6 +240,8 @@ fn init_setup() -> color_eyre::Result<()> {
 }
 fn main() -> color_eyre::Result<()> {
     init_setup()?;
+    init_log("debug.log");
+    log!("creating debug.log file");
     let mut passdb = PassDB::new();
     passdb.run()?;
     Ok(())
