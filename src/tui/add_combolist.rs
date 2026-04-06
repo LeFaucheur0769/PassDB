@@ -444,11 +444,11 @@ fn process_files_worker(
     let mut skip_current = false;
 
     for (file_index, file_path) in files.iter().enumerate() {
-        log!("before should stop");
+        //log!("before should stop");
         if should_stop {
             break;
         }
-        log!("checking file {}", file_path.to_string_lossy());
+        //log!("checking file {}", file_path.to_string_lossy());
 
         // Reset skip flag for new file
         skip_current = false;
@@ -475,7 +475,7 @@ fn process_files_worker(
         }
 
         // Process current file
-        log!("Processing hash of file {}", file_path.to_string_lossy());
+        //log!("Processing hash of file {}", file_path.to_string_lossy());
         if let Ok(mut hashfile) = sorter::HashFile::new(file_path, &db_location) {
             let mut file_processed = false;
 
@@ -522,9 +522,9 @@ fn process_files_worker(
                         ));
 
                         // If it's a new file, sort it
-                        log!("Here starts the sorting process");
+                        //log!("Here starts the sorting process");
                         if !file_exist {
-                            log!("The file did not exist and is being sorted");
+                            //log!("The file did not exist and is being sorted");
                             match sorter::Sort::new(file_path, &db_location) {
                                 Ok(mut sorter) => {
                                     // println!("DEBUG: Starting to sort file {:?}", file_path);

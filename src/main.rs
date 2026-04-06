@@ -240,8 +240,8 @@ fn init_setup() -> color_eyre::Result<()> {
 }
 fn main() -> color_eyre::Result<()> {
     init_setup()?;
-    init_log("debug.log");
-    log!("creating debug.log file");
+    // init_log("debug.log");
+    // log!("creating debug.log file");
     let mut passdb = PassDB::new();
     passdb.run()?;
     Ok(())

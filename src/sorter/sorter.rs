@@ -28,7 +28,7 @@ impl HashFile {
         let file = File::open(path)?; // Open the file specified in path
         let total_size = std::fs::metadata(path)?.len(); // Get the total size of the file to visualize the progress
         let hashdb = db_location.to_string() + "/hashdb"; // get the locatation of the hashdb file to then save the calculated hash of the file
-        let output_folder = db_location.to_string() + "/output";
+        let output_folder = db_location.to_string() + "/output/";
 
         Ok(HashFile {
             file,
@@ -119,7 +119,7 @@ impl Sort {
     //! This function is used to sort the file
     //! It accepts as input the path of the file to sort as &Path and db_dir as &str
     pub fn new(path: &Path, db_dir: &str) -> color_eyre::Result<Self> {
-        log!("Creating Sort {}", path.to_string_lossy());
+        //log!("Creating Sort {}", path.to_string_lossy());
         let file = File::open(path)?; // open the file to sort
         let total_size = std::fs::metadata(path)?.len(); // get the size of the file
         // Get just the file name as a String
@@ -129,7 +129,7 @@ impl Sort {
             .ok_or_else(|| color_eyre::eyre::eyre!("Invalid file name"))?
             .to_string(); // get the file_name or return an error is the name if invalid
         let output_dir = format!("{}/sorted/", db_dir.trim_end_matches('/'));
-        log!("{}", output_dir);
+        //log!("{}", output_dir);
         Ok(Sort {
             file,
             total_size,
@@ -142,15 +142,14 @@ impl Sort {
     /// First pass: collect all unique groups
     /// Second pass: write each group to its file (one at a time)
     pub fn sort_optimised_safe(&mut self) -> color_eyre::Result<String> {
-        log!("Sort optimised safe");
+        //log!("Sort optimised safe");
         fs::create_dir_all(&self.output_dir)?;
 
         // First pass: collect all unique groups
         let mut groups: HashMap<String, Vec<String>> = HashMap::new(); // create a hashmap and vec<string group> to process the file
         let reader = BufReader::new(&self.file);
         // First pass: collect all unique groups
-        //println!("First pass: collecting groups...");
-        log!("First pass: collecting groups");
+        //log!("First pass: collecting groups");
 
         for line_result in reader.split(b'\n') {
             let bytes = match line_result {
@@ -159,6 +158,7 @@ impl Sort {
             };
             // Lossily convert - replaces invalid UTF-8 chars with ?
             let line = String::from_utf8_lossy(&bytes).into_owned();
+
 
             // Run the line through the checking process and return an empty line if invalid
             let cleaned_line = self.sorting_funct(line.as_str());
@@ -177,7 +177,7 @@ impl Sort {
             let sanitized = sanitize_filename(&first_3);
             // log!("Sanitized file name with 3 chars {}", sanitized);
             if sanitized.is_empty() {
-                log!("After sanitize, the file was empty");
+                //log!("After sanitize, the file was empty");
                 continue; // If all the characters pass the line
             }
 
@@ -252,7 +252,7 @@ impl Sort {
         } else {
             cleaned = login.to_string()
         }
-
+        
         self.separator_function_tmp_name(cleaned.as_str())
 
     }
