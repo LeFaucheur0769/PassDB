@@ -218,7 +218,7 @@ pub fn add_combolist<B: Backend>(
                             "New file - sorting content and adding {}",
                             hash
                         )));
-                    }
+                    } else { add_combo.logs.push(LogEntry::error("File has already bee imported")) }
                 }
 
                 // Update total progress

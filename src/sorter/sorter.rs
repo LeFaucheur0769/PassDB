@@ -20,6 +20,8 @@ pub struct HashFile {
     total_size: u64,
     bytes_read: u64,
     hashdb: String,
+    archive_name: String,
+    archive_namedb: String,
 }
 
 impl HashFile {
@@ -29,6 +31,8 @@ impl HashFile {
         let total_size = std::fs::metadata(path)?.len(); // Get the total size of the file to visualize the progress
         let hashdb = db_location.to_string() + "/hashdb"; // get the locatation of the hashdb file to then save the calculated hash of the file
         let output_folder = db_location.to_string() + "/output/";
+        let archive_name = sanitize_filename(path.file_name().unwrap().to_str().unwrap());
+        let archive_namedb = db_location.to_string() + "/archive_namedb";
 
         Ok(HashFile {
             file,
@@ -36,6 +40,8 @@ impl HashFile {
             total_size,
             bytes_read: 0,
             hashdb,
+            archive_name,
+            archive_namedb,
         })
     }
     /// Update the hash process of a file
@@ -101,6 +107,9 @@ impl HashFile {
             .open(&self.hashdb)?; // open the file using openoptions to open it in append mode or create the file if it doesn't exist
 
         hashdb.write_all(format!("{:x}\n", result).as_bytes())?; // append the hash and add a newline for the next hash
+
+        let mut archive_namedb = fs::OpenOptions::new().create(true).append(true).open(&self.archive_namedb)?;
+        archive_namedb.write_all(format!("{}\n", &self.archive_name).as_bytes())?;
 
         Ok((hash, false)) // return the hash to log it and false to specify that the hash was not
         // present in the db and allow the sorting process to start
