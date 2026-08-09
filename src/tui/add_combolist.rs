@@ -1,4 +1,4 @@
-use crate::logging::{LogEntry, types::LogLevel};
+use crate::logging::LogEntry;
 use crate::sorter::sorter;
 use crossterm::event::{self, Event, KeyCode, KeyModifiers};
 use glob;
@@ -13,7 +13,6 @@ use std::path;
 use std::sync::mpsc::{Receiver, Sender, TryRecvError, channel};
 use std::thread;
 use std::time::{Duration, Instant};
-use crate::log;
 
 #[derive(Debug)]
 enum WorkerProgress {

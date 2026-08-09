@@ -1,5 +1,4 @@
 use std::fs::File;
-use std::io::Write;
 use std::sync::Mutex;
 
 pub static LOG_FILE: std::sync::OnceLock<Mutex<File>> = std::sync::OnceLock::new();

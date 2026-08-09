@@ -27,7 +27,7 @@ const LOGO: &str = r#"
 pub fn tui(
     import_dir: String,
     output_dir: String,
-    to_sort_dir: String,
+    _to_sort_dir: String,
     export_dir: String,
 ) -> color_eyre::Result<()> {
     color_eyre::install()?;

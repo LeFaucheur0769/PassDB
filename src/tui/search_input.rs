@@ -137,7 +137,7 @@ impl SearchInputEmail {
         frame.render_widget(logo, area);
     }
 
-    fn searched_output(&mut self, frame: &mut Frame, area: Rect) {
+    fn searched_output(&mut self, _frame: &mut Frame, _area: Rect) {
         //let logo =
         //   Paragraph::new(self.search_email.clone()).block(Block::new().borders(Borders::NONE));
 

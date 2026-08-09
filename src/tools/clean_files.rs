@@ -17,7 +17,7 @@ impl CleanFile {
         let reader = BufReader::new(file);
         for (i, line) in reader.lines().enumerate() {
             match line {
-                Ok(line) => {
+                Ok(_line) => {
                     todo!()
                 }
                 Err(e) => logs.push(LogEntry::error(format!("Error at line {i} : {e}"))),
@@ -30,7 +30,7 @@ impl CleanFile {
 pub struct CleanLine {}
 
 impl CleanLine {
-    pub fn new(line: &str) {
+    pub fn new(_line: &str) {
         // todo!()
     }
 }

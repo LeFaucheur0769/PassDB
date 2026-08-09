@@ -2,7 +2,7 @@
 use crate::test_utils;
 
 use std::{
-    env::{self, Args},
+    env::{self},
     fs, io,
     path::{Path, PathBuf},
 };
@@ -216,7 +216,7 @@ impl TestApp {
 
     fn detecting_if_line_is_ulp(&mut self, line: String) -> String {
         let result = line;
-        return (result);
+        return result;
     }
     // fn check_for_valid_app_dir() {
     //     let db_dir =

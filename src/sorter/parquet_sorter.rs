@@ -5,7 +5,7 @@ use arrow::{
     record_batch::RecordBatch,
 };
 use parquet::arrow::ArrowWriter;
-use std::{env, fs::File, sync::Arc};
+use std::{fs::File, sync::Arc};
 
 #[derive(Debug, Clone)]
 pub struct Contact {

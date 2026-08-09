@@ -1,14 +1,11 @@
-use crate::log;
 use crate::sorter::parquet_sorter::Contact;
 use crate::sorter::{parquet_sorter};
 use color_eyre::eyre::eyre;
 use color_eyre::{Result, eyre};
 use md5::{self, Digest};
-use std::collections::HashMap;
 use std::fs::{self, File};
-use std::io::BufWriter;
 use std::io::{BufRead, BufReader, Read, Write};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::result::Result::Ok;
 
 pub fn sanitize_filename(s: &str) -> String {
@@ -35,7 +32,7 @@ impl HashFile {
         let file = File::open(path)?; // Open the file specified in path
         let total_size = std::fs::metadata(path)?.len(); // Get the total size of the file to visualize the progress
         let hashdb = db_location.to_string() + "/hashdb"; // get the locatation of the hashdb file to then save the calculated hash of the file
-        let output_folder = db_location.to_string() + "/output/";
+        let _output_folder = db_location.to_string() + "/output/";
         let archive_name = sanitize_filename(path.file_name().unwrap().to_str().unwrap());
         let archive_namedb = db_location.to_string() + "/archive_namedb";
 
@@ -282,8 +279,8 @@ impl Sort {
         false
     }
     pub fn sorting_funct(&self, login: &str) -> String {
-        let mut cleaned;
-        let separators = [" ", ":", ",", ";"];
+        let cleaned;
+        let _separators = [" ", ":", ",", ";"];
 
         // Check if contains url parts and if yes clean them
         if self.check_if_contains_url(login) {
@@ -381,7 +378,7 @@ impl Sort {
                             /*
                             Considers that the format of the import is ulp and so moving it to lpu
                             */
-                            return (format!("{}:{}:{}", split[1], split[2], split[0]));
+                            return format!("{}:{}:{}", split[1], split[2], split[0]) ;
                         } else {
 
                             // println!("{} invalid format for '{}'", login, sep);

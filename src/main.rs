@@ -16,7 +16,6 @@ pub mod init;
 use std::{
     env,
     fs::{self},
-    path::Path,
     path::PathBuf,
     vec,
 };
@@ -27,13 +26,10 @@ use clap::{CommandFactory, Parser, error::Result};
 
 use yaml_rust2::{self};
 
-use crate::clean_files::CleanLine;
 use crate::init::check_vaild_config_file::check_config_file_exists;
 use crate::init::check_valid_install_folders::check_for_config_folders;
-use crate::logging::test;
 use crate::tools::clean_files;
 use crate::tui::test_tui::test_fun;
-use crate::tools::logs::init_log;
 
 /// Simple program to greet a person
 #[derive(Parser, Debug)]
@@ -153,10 +149,10 @@ impl PassDB {
     }
     fn test(
         &mut self,
-        import_location: String,
-        db_location: String,
-        file_to_sort_location: String,
-        export_results_location: String,
+        _import_location: String,
+        _db_location: String,
+        _file_to_sort_location: String,
+        _export_results_location: String,
     ) -> color_eyre::Result<()> {
         color_eyre::install()?;
         println!("running the module test");

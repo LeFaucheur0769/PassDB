@@ -1,5 +1,3 @@
-use crossterm::style::Stylize;
-use ratatui::widgets::List;
 
 /// The goal of this function is to sort the email.txt file in semple
 /// It should be able to store a url:logging:password as logging:password:url
@@ -21,8 +19,8 @@ pub fn test_sorting() {
 }
 
 fn sorting_funct(login: &str) -> String {
-    let mut cleaned;
-    let separators = [" ", ":", ",", ";"];
+    let cleaned;
+    let _separators = [" ", ":", ",", ";"];
 
     // Check if contains url parts and if yes clean them
     if check_if_contains_url(login) {
@@ -138,7 +136,7 @@ fn separator_function_tmp_name(login: &str) -> String {
                         /*
                       Considers that the format of the import is ulp and so moving it to lpu
                       */
-                            return(format!("{}:{}:{}", split[1], split[2], split[0]))
+                            return format!("{}:{}:{}", split[1], split[2], split[0]) 
 
                     } else {
 
@@ -160,7 +158,7 @@ fn separator_function_tmp_name(login: &str) -> String {
 }
 
 ///
-fn reorder_ulp_to_lpu(login: &str, separator: &char) {
+fn reorder_ulp_to_lpu(login: &str, _separator: &char) {
     let split_login = login.split(":").collect::<Vec<&str>>();
     println!("split login : {:?}", split_login);
     return;

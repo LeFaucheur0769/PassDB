@@ -1,6 +1,6 @@
 use std::env::current_dir;
 use std::fs;
-use std::fs::{create_dir_all, remove_dir};
+use std::fs::remove_dir;
 use std::path::PathBuf;
 
 pub fn get_current_dir() -> String {
