@@ -194,7 +194,7 @@ impl PassDB {
             }
         };
 
-        search.search()?;
+        search.search();
 
         Ok(())
     }

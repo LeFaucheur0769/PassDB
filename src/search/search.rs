@@ -1,106 +1,84 @@
-use std::{
-    fs::File,
-    io::{BufRead, BufReader},
-    path::PathBuf,
-};
-
-pub fn search() {
-    println!("None");
-}
+use std::path::PathBuf;
+use duckdb::Connection;
+use color_eyre::Result;
 
 pub struct Searcher {
-    db_dir: String,
-    export_dir: String,
-    files: Vec<PathBuf>,
-    output: Vec<String>,
+    db_path: PathBuf,
     email_to_search: String,
-    total_bytes: u64,
-    nbr_line: u64,
-    current_pos: f64,
+    output: Vec<String>,          // now stores formatted lines
 }
 
 impl Searcher {
     pub fn new(
         db_dir: String,
-        export_dir: String,
+        _export_dir: String,      // kept for compatibility, unused
         email_to_search: String,
     ) -> Result<Self, color_eyre::Report> {
-        let mut prefix = email_to_search.clone();
-        if prefix.len() > 3 {
-            prefix.truncate(3); // optional, max 3 chars
-        }
-
-        let export_path = std::env::current_dir()
+        let db_path = std::env::current_dir()
             .unwrap()
-            .join(db_dir.clone())
-            .join("sorted");
+            .join(db_dir)
+            .join("sorted")
+            .join("database.parquet");
 
-        // Match all files that start with the prefix
-        let mut files = Vec::new();
-        for entry in std::fs::read_dir(&export_path)? {
-            let entry = entry?;
-            let file_name = entry.file_name();
-            let file_name = file_name.to_string_lossy();
-            if file_name.starts_with(&prefix) && file_name.ends_with(".txt") {
-                files.push(entry.path());
-            }
-        }
-
-        if files.is_empty() {
+        if !db_path.exists() {
             return Err(color_eyre::eyre::eyre!(
-                "No files found with prefix '{}'",
-                prefix
+                "Parquet file not found at {:?}",
+                db_path
             ));
         }
 
         Ok(Searcher {
-            db_dir: export_path.to_string_lossy().to_string(),
-            export_dir,
-            files,
-            output: vec![],
+            db_path,
             email_to_search,
-            total_bytes: 0,
-            nbr_line: 0,
-            current_pos: 0.0,
+            output: Vec::new(),
         })
     }
 
-    pub fn search(&mut self) -> std::io::Result<bool> {
+    pub fn search(&mut self) -> Result<bool, color_eyre::Report> {
         self.output.clear();
-        self.nbr_line = 0;
-        self.total_bytes = 0;
-        self.current_pos = 0.0;
 
-        for file_path in &self.files {
-            let file = File::open(file_path)?;
-            let mut reader = BufReader::new(file);
-            loop {
-                let mut buf = Vec::new();
-                let bytes_read = reader.read_until(b'\n', &mut buf)?;
+        let conn = Connection::open_in_memory()?;
 
-                if bytes_read == 0 {
-                    break;
-                }
+        // Use substring match (LIKE) to mimic the old .contains() behaviour
+        let mut stmt = conn.prepare(
+            "SELECT email, username, password, url, name, other
+             FROM read_parquet(?1)
+             WHERE email LIKE '%' || ?2 || '%'"
+        )?;
 
-                self.nbr_line += 1;
+        let db_path_str = self.db_path.to_string_lossy().to_string();
+        let mut rows = stmt.query([db_path_str, self.email_to_search.clone()])?;
 
-                let line = String::from_utf8_lossy(&buf);
+        while let Some(row) = rows.next()? {
+            let email: Option<String> = row.get(0)?;
+            let username: Option<String> = row.get(1)?;
+            let password: Option<String> = row.get(2)?;
+            let url: Option<String> = row.get(3)?;
+            let name: Option<String> = row.get(4)?;
+            let other: Option<String> = row.get(5)?;
 
-                if line.contains(&self.email_to_search) {
-                    self.output.push(line.trim_end().to_string());
-                }
-
-                self.current_pos += bytes_read as f64; // cumulative progress
-            }
+            // Format the row as a tab‑separated line (replace with your preferred delimiter)
+            let line = format!(
+                "{}\t{}\t{}\t{}\t{}\t{}",
+                email.unwrap_or_default(),
+                username.unwrap_or_default(),
+                password.unwrap_or_default(),
+                url.unwrap_or_default(),
+                name.unwrap_or_default(),
+                other.unwrap_or_default()
+            );
+            self.output.push(line);
         }
 
         Ok(true)
     }
 
-    pub fn update(&mut self) {}
+    pub fn update(&mut self) {
+        // no‑op
+    }
 
     pub fn progress(&self) -> f64 {
-        self.current_pos / self.total_bytes as f64
+        1.0   // query is atomic – considered complete after search()
     }
 
     pub fn get_results(&self) -> &[String] {

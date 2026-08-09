@@ -98,7 +98,7 @@ impl SearchOutput {
             search::search::Searcher::new(db_dir, export_dir, email_to_search.clone())
                 .map_err(io::Error::other)?;
         //self.results =
-        searcher.search()?;
+        searcher.search();
         self.results = (searcher.get_results()).to_vec();
 
         loop {
