@@ -1,12 +1,24 @@
-use crate::sorter::parquet_sorter::Contact;
-use crate::sorter::{parquet_sorter};
+use crate::logging::LogEntry;
+use crate::sorter::parquet_sorter;
 use color_eyre::eyre::eyre;
 use color_eyre::{Result, eyre};
+use duckdb::Connection;
 use md5::{self, Digest};
 use std::fs::{self, File};
 use std::io::{BufRead, BufReader, Read, Write};
 use std::path::Path;
 use std::result::Result::Ok;
+use std::sync::mpsc::Sender;
+#[derive(Debug, Clone)]
+pub struct Contact {
+    pub email: Option<String>,
+    pub username: Option<String>,
+    pub password: Option<String>,
+    pub url: Option<String>,
+    pub name: Option<String>,
+    pub other: Option<String>,
+    pub origin: Option<String>,
+}
 
 pub fn sanitize_filename(s: &str) -> String {
     //! Function used to sanitize_filename and prevent the creation of wrong files
@@ -151,98 +163,535 @@ impl Sort {
             file_name,
         })
     }
-    /// Sort the file in an optimized and safe manner
-    /// This function will sort the file in two passes:
-    /// First pass: collect all unique groups
-    /// Second pass: write each group to its file (one at a time)
-    pub fn sort_optimised_safe(&mut self) -> color_eyre::Result<String> {
+
+    pub fn sort_into_db(
+        &mut self,
+        conn: &Connection,
+        log_tx: &Sender<LogEntry>,
+    ) -> color_eyre::Result<String> {
+        use duckdb::{Appender, ToSql};
+        use std::io::BufRead;
+        use std::time::Instant;
+
         fs::create_dir_all(&self.output_dir)?;
         let reader = BufReader::new(&self.file);
         let separator = ':';
 
+        conn.execute("PRAGMA memory_limit='4GB';", [])?;
+        conn.execute("PRAGMA threads=4;", [])?;
+        conn.execute("PRAGMA temp_directory='/tmp/duckdb_temp';", [])?;
+
+        let start_time = Instant::now();
+        let mut total_rows = 0;
+        let mut skipped_rows = 0;
+
+        fn clean_phone(s: &str) -> String {
+            s.chars().filter(|c| c.is_ascii_digit()).collect()
+        }
+
+        fn is_french_style(line: &str) -> bool {
+            let parts: Vec<&str> = line.split(',').map(|s| s.trim()).collect();
+            parts.len() >= 4 && (parts[0].contains("M.") || parts[0].contains("Mme."))
+        }
+
+        conn.execute("BEGIN TRANSACTION", [])?;
+        let mut appender = conn.appender("contacts")?;
+
+        const FLUSH_INTERVAL: usize = 100_000;
+        const COMMIT_INTERVAL: usize = 5_000_000;
+
+        let mut rows_since_flush = 0;
+        let mut rows_since_commit = 0;
+
+        // --- CSV header detection state ---
+        let mut header_detected = false;
+        let mut email_idx = usize::MAX;
+        let mut phone_idx = usize::MAX;
+        let mut username_idx = usize::MAX;
+        let mut name_idx = usize::MAX;
+        let mut password_idx = usize::MAX;
+
+        // --- CSV headers
+        let mut separator: char = ':';
+        let mut headers: Vec<String> = Vec::new();
+
         for line_result in reader.split(b'\n') {
             let bytes = line_result?;
-            let line = String::from_utf8_lossy(&bytes).into_owned();
-
-            let cleaned_line = self.sorting_funct(&line);
-            let trimmed = cleaned_line.trim();
+            let line = String::from_utf8_lossy(&bytes);
+            let trimmed = line.trim();
 
             if trimmed.is_empty() {
                 continue;
             }
 
-            // Extract email and the rest (url:password)
-            let (email, rest) = match self.search_if_email(trimmed, separator) {
-                Ok(tuple) => tuple,
-                Err(_) => {
-                    // No email found – skip this line
+            // -------- Helper to append a single row (avoids code duplication) --------
+            fn append_row(
+                appender: &mut Appender,
+                email: &str,
+                username: &str,
+                password: &str,
+                url: &str,
+                name: &str,
+                other: &str,
+                origin: &str,
+            ) -> Result<(), duckdb::Error> {
+                appender.append_row(&[
+                    &email as &dyn ToSql,
+                    &username as &dyn ToSql,
+                    &password as &dyn ToSql,
+                    &url as &dyn ToSql,
+                    &name as &dyn ToSql,
+                    &other as &dyn ToSql,
+                    &origin as &dyn ToSql,
+                ])
+            }
+
+            let mut parsed = false;
+
+            // -------- 0. JSON detection (object or array) --------
+            let is_json = trimmed.starts_with('{') || trimmed.starts_with('[');
+            if is_json && !parsed {
+                // Clean BOM if any
+                let clean = trimmed.trim_start_matches('\u{FEFF}').trim();
+                if let Ok(value) = serde_json::from_str::<serde_json::Value>(clean) {
+                    // Helper to extract fields from a JSON object
+                    let extract_fields = |obj: &serde_json::Value| -> (String, String, String, String, String, String) {
+                        let extract = |keys: &[&str]| -> String {
+                            for key in keys {
+                                if let Some(val) = obj.get(key).and_then(|v| v.as_str()) {
+                                    if !val.is_empty() {
+                                        return val.to_string();
+                                    }
+                                }
+                            }
+                            String::new()
+                        };
+                        let email_val = extract(&["email", "Email", "mail", "emailAddress"]);
+                        let phone_raw = extract(&["mobilePhone", "phone", "telephone", "PhoneNumber", "cell"]);
+                        let full_name = extract(&["fullName", "FullName", "name", "Name"]);
+                        let surname = extract(&["surname", "lastName", "LastName"]);
+                        let first_name = extract(&["firstName", "FirstName"]);
+                        let address = extract(&["address", "Address", "street"]);
+                        let zip = extract(&["zipCode", "postalCode"]);
+                        let city = extract(&["city", "City", "town"]);
+
+                        let phone_clean = clean_phone(&phone_raw);
+                        let email = if !email_val.is_empty() {
+                            email_val
+                        } else if !phone_clean.is_empty() {
+                            phone_clean.clone()
+                        } else {
+                            String::new()
+                        };
+                        let name = if !full_name.is_empty() {
+                            full_name
+                        } else if !surname.is_empty() && !first_name.is_empty() {
+                            format!("{} {}", surname, first_name)
+                        } else if !surname.is_empty() {
+                            surname.clone()
+                        } else {
+                            String::new()
+                        };
+                        let other = format!(
+                            "Surname: {}, FirstName: {}, Address: {} {} {}, Phone: {}",
+                            surname, first_name, address, zip, city, phone_clean
+                        );
+                        (email, String::new(), String::new(), String::new(), name, other)
+                    };
+
+                    match value {
+                        serde_json::Value::Array(arr) => {
+                            // Process each object in the array
+                            for obj in arr {
+                                if let serde_json::Value::Object(_) = obj {
+                                    let (email, username, password, url, name, other) =
+                                        extract_fields(&obj);
+                                    if !email.is_empty() || !username.is_empty() || !name.is_empty()
+                                    {
+                                        append_row(
+                                            &mut appender,
+                                            &email,
+                                            &username,
+                                            &password,
+                                            &url,
+                                            &name,
+                                            &other,
+                                            &self.file_name,
+                                        )?;
+                                        total_rows += 1;
+                                        rows_since_flush += 1;
+                                        rows_since_commit += 1;
+
+                                        // Flush and commit logic (same as below)
+                                        if rows_since_flush >= FLUSH_INTERVAL {
+                                            appender.flush()?;
+                                            rows_since_flush = 0;
+                                        }
+                                        if rows_since_commit >= COMMIT_INTERVAL {
+                                            appender.flush()?;
+                                            conn.execute("COMMIT", [])?;
+                                            conn.execute("BEGIN TRANSACTION", [])?;
+                                            rows_since_commit = 0;
+                                            let elapsed = start_time.elapsed().as_secs_f64();
+                                            let rate = total_rows as f64 / elapsed;
+                                            let _ = log_tx.send(LogEntry::info(format!(
+                                                "Committed {} rows, {:.0} rows/sec",
+                                                total_rows, rate
+                                            )));
+                                        }
+                                        parsed = true;
+                                    }
+                                }
+                            }
+                        }
+                        serde_json::Value::Object(_) => {
+                            // Single object
+                            let (email, username, password, url, name, other) =
+                                extract_fields(&value);
+                            if !email.is_empty() || !username.is_empty() || !name.is_empty() {
+                                append_row(
+                                    &mut appender,
+                                    &email,
+                                    &username,
+                                    &password,
+                                    &url,
+                                    &name,
+                                    &other,
+                                    &self.file_name,
+                                )?;
+                                total_rows += 1;
+                                rows_since_flush += 1;
+                                rows_since_commit += 1;
+                                parsed = true;
+                            }
+                        }
+                        _ => {} // ignore other types
+                    }
+                }
+                // If we parsed any JSON, skip other parsers for this line
+                if parsed {
+                    // Log progress periodically (already done after all rows)
+                    // We'll handle logging later to avoid duplication.
+                    // But we need to flush/commit checks already inside.
+                    // We'll skip the rest of this line and continue.
+                    if total_rows % 1_000_000 == 0 && total_rows > 0 {
+                        appender.flush()?;
+                        let elapsed = start_time.elapsed().as_secs_f64();
+                        let rate = total_rows as f64 / elapsed;
+                        let _ = log_tx.send(LogEntry::info(format!(
+                            "Parsed {} rows (skipped: {}), {:.0} rows/sec",
+                            total_rows, skipped_rows, rate
+                        )));
+                    }
                     continue;
                 }
-            };
+            }
 
-            // Extract URL from the rest and get remaining (password)
-            let (url, password_str) = match self.search_if_url(&rest, separator) {
-                Ok(tuple) => tuple,
-                Err(_) => {
-                    // No URL found – maybe the line is just email:password
-                    // We can treat the whole 'rest' as the password
-                    (String::new(), rest)
-                }
-            };
+            // -------- 1. CSV header detection (only if not JSON) --------
 
-            // Now password_str should be the password (or empty)
-            let password = if password_str.is_empty() {
-                None
+            if trimmed.contains(',') && !trimmed.contains(';') && !trimmed.contains('\t') {
+                separator = ',';
+            } else if trimmed.contains(';') && !trimmed.contains(',') && !trimmed.contains('\t') {
+                separator = ';';
+            } else if trimmed.contains('\t') && !trimmed.contains(',') && !trimmed.contains(';') {
+                separator = '\t';
             } else {
-                Some(password_str)
-            };
+                // Mixed delimiters: count which appears more often
+                let comma_count = trimmed.chars().filter(|&c| c == ',').count();
+                let semi_count = trimmed.chars().filter(|&c| c == ';').count();
+                let tab_count = trimmed.chars().filter(|&c| c == '\t').count();
+                if semi_count >= comma_count && semi_count >= tab_count {
+                    separator = ';';
+                } else if comma_count >= semi_count && comma_count >= tab_count {
+                    separator = ',';
+                } else {
+                    separator = '\t';
+                }
+            }
 
-            // If URL was not found, we set it to None (already empty string, but we want Option)
-            let url_opt = if url.is_empty() { None } else { Some(url) };
+            if !header_detected && !parsed && trimmed.contains(separator) {
+                let raw_headers: Vec<&str> = trimmed.split(separator).map(|s| s.trim()).collect();
+                // Check if this looks like a header
+                let has_user_id = raw_headers.iter().any(|&h| h == "user_id");
+                let has_email = raw_headers
+                    .iter()
+                    .any(|&h| h == "email" || h == "mail" || h == "ODQP_LB_MAIL_CONTACT");
+                let has_username = raw_headers.iter().any(|&h| h == "username");
+                let has_nickname = raw_headers.iter().any(|&h| h == "nickname" || h == "name");
+                let has_mobile = raw_headers
+                    .iter()
+                    .any(|&h| h == "mobile_phone" || h == "phone" || h == "ODQP_LB_TEL_CONTACT");
+                let has_password = raw_headers.iter().any(|&h| h == "password" || h == "hash");
 
-            // All other fields
-            let username: Option<String> = None;
-            let name: Option<String> = None;
-            let other: Option<String> = None;
+                // Include password detection to be safe
+                if has_user_id
+                    || has_email
+                    || has_username
+                    || has_nickname
+                    || has_mobile
+                    || has_password
+                {
+                    // Store all headers for later use (now assigning to the outer `headers`)
+                    headers = raw_headers.iter().map(|s| s.to_string()).collect();
 
-            let contact = Contact {
-                email: Some(email),   // assuming email is String
-                username,
-                password,
-                url: url_opt,
-                name,
-                other,
-            };
+                    email_idx = headers
+                        .iter()
+                        .position(|h| h == "email" || h == "mail" || h == "ODQP_LB_MAIL_CONTACT")
+                        .unwrap_or(usize::MAX);
+                    username_idx = headers
+                        .iter()
+                        .position(|h| h == "username")
+                        .unwrap_or(usize::MAX);
+                    password_idx = headers
+                        .iter()
+                        .position(|h| h == "password" || h == "hash")
+                        .unwrap_or(usize::MAX);
+                    phone_idx = headers
+                        .iter()
+                        .position(|h| {
+                            h == "mobile_phone" || h == "phone" || h == "ODQP_LB_TEL_CONTACT"
+                        })
+                        .unwrap_or(usize::MAX);
+                    name_idx = headers
+                        .iter()
+                        .position(|h| h == "nickname" || h == "name")
+                        .unwrap_or(usize::MAX);
 
-            parquet_sorter::add_combo(contact).map_err(|e| color_eyre::eyre::eyre!(e))?;
+                    header_detected = true;
+                    continue; // skip header line
+                }
+            }
+            // -------- 2. CSV (if header was detected and not parsed yet) --------
+            if header_detected && !parsed && trimmed.contains(separator) {
+                log_tx.send(LogEntry::info("CSV with header detected"))?;
+                let fields: Vec<&str> = trimmed.split(separator).map(|s| s.trim()).collect();
+                let mut other_parts = Vec::new();
+                let mut email = String::new();
+                let mut username = String::new();
+                let mut name = String::new();
+                let mut password = String::new();
+
+                if email_idx < fields.len() {
+                    // log_tx.send(LogEntry::debug("Email detected"))?;
+                    email = fields[email_idx].to_string();
+                }
+
+                if password_idx < fields.len() {
+                    // log_tx.send(LogEntry::debug("Password detected"))?;
+                    password = fields[password_idx].to_string();
+                }
+
+                if phone_idx < fields.len() {
+                    // log_tx.send(LogEntry::debug("Phone detected"))?;
+                    let phone_clean = clean_phone(fields[phone_idx]);
+                    if email.is_empty() && !phone_clean.is_empty() {
+                        email = phone_clean;
+                    } else {
+                        other_parts.push(format!("Phone: {}", phone_clean));
+                    }
+                }
+
+                if username_idx < fields.len() {
+                    // log_tx.send(LogEntry::debug("Username detected"))?;
+                    username = fields[username_idx].to_string();
+                }
+
+                if name_idx < fields.len() {
+                    // log_tx.send(LogEntry::debug("Name detected"))?;
+                    name = fields[name_idx].to_string();
+                }
+
+                // Collect all other fields with their column names
+                for (i, field) in fields.iter().enumerate() {
+                    if i != email_idx
+                        && i != phone_idx
+                        && i != username_idx
+                        && i != name_idx
+                        && i != password_idx
+                    {
+                        if !field.is_empty() {
+                            // Use the stored `headers` to get the column name
+                            let header_name =
+                                headers.get(i).map(|s| s.as_str()).unwrap_or("unknown");
+                            other_parts.push(format!("{}: {}", header_name, field));
+                        }
+                    }
+                }
+                let other = other_parts.join(" | ");
+
+                if !email.is_empty() || !username.is_empty() {
+                    append_row(
+                        &mut appender,
+                        &email,
+                        &username,
+                        &password,
+                        "",
+                        &name,
+                        &other,
+                        &self.file_name,
+                    )?;
+                    total_rows += 1;
+                    rows_since_flush += 1;
+                    rows_since_commit += 1;
+                    parsed = true;
+                }
+            }
+
+            // -------- 3. android:// --------
+            if !parsed && trimmed.starts_with("android://") {
+                let parts: Vec<&str> = trimmed.split(':').collect();
+                if parts.len() >= 4 {
+                    let password = parts.last().unwrap().to_string();
+                    let email_or_username = parts[parts.len() - 2].to_string();
+                    let url = parts[..parts.len() - 2].join(":");
+                    let (email, username) = if email_or_username.contains('@') {
+                        (email_or_username, String::new())
+                    } else {
+                        (String::new(), email_or_username)
+                    };
+                    append_row(
+                        &mut appender,
+                        &email,
+                        &username,
+                        &password,
+                        &url,
+                        "",
+                        "",
+                        &self.file_name,
+                    )?;
+                    total_rows += 1;
+                    rows_since_flush += 1;
+                    rows_since_commit += 1;
+                    parsed = true;
+                }
+            }
+
+            // -------- 4. French CSV --------
+            if !parsed && trimmed.contains(',') && is_french_style(trimmed) {
+                let fields: Vec<&str> = trimmed.split(',').map(|s| s.trim()).collect();
+                let name_val = fields.get(0).unwrap_or(&"").to_string();
+                let phone_raw = fields.get(4).unwrap_or(&"").trim();
+                let phone_clean = clean_phone(phone_raw);
+                if !phone_clean.is_empty() && !name_val.is_empty() {
+                    append_row(
+                        &mut appender,
+                        &phone_clean,
+                        "",
+                        "",
+                        "",
+                        &name_val,
+                        "",
+                        &self.file_name,
+                    )?;
+                    total_rows += 1;
+                    rows_since_flush += 1;
+                    rows_since_commit += 1;
+                    parsed = true;
+                }
+            }
+
+            // -------- 5. Colon combos --------
+            if !parsed && trimmed.contains(':') {
+                let parts: Vec<&str> = trimmed.split(separator).collect();
+                if parts.len() >= 3 {
+                    let password = parts.last().unwrap().to_string();
+                    let email_or_username = parts[parts.len() - 2].to_string();
+                    let url = parts[..parts.len() - 2].join(":");
+                    let (email, username) = if email_or_username.contains('@') {
+                        (email_or_username, String::new())
+                    } else {
+                        (String::new(), email_or_username)
+                    };
+                    append_row(
+                        &mut appender,
+                        &email,
+                        &username,
+                        &password,
+                        &url,
+                        "",
+                        "",
+                        &self.file_name,
+                    )?;
+                    total_rows += 1;
+                    rows_since_flush += 1;
+                    rows_since_commit += 1;
+                    parsed = true;
+                } else if parts.len() == 2 {
+                    let first = parts[0].to_string();
+                    let second = parts[1].to_string();
+                    let (email, username) = if first.chars().all(|c| c.is_ascii_digit())
+                        && (7..=15).contains(&first.len())
+                    {
+                        (first, String::new())
+                    } else if first.contains('@') {
+                        (first, String::new())
+                    } else {
+                        (String::new(), first)
+                    };
+                    let password = second;
+                    append_row(
+                        &mut appender,
+                        &email,
+                        &username,
+                        &password,
+                        "",
+                        "",
+                        "",
+                        &self.file_name,
+                    )?;
+                    total_rows += 1;
+                    rows_since_flush += 1;
+                    rows_since_commit += 1;
+                    parsed = true;
+                }
+            }
+
+            if !parsed {
+                skipped_rows += 1;
+            }
+
+            // -------- Flush and commit logic (for non-JSON rows) --------
+            if rows_since_flush >= FLUSH_INTERVAL {
+                appender.flush()?;
+                rows_since_flush = 0;
+            }
+            if rows_since_commit >= COMMIT_INTERVAL {
+                appender.flush()?;
+                conn.execute("COMMIT", [])?;
+                conn.execute("BEGIN TRANSACTION", [])?;
+                rows_since_commit = 0;
+                let elapsed = start_time.elapsed().as_secs_f64();
+                let rate = total_rows as f64 / elapsed;
+                let _ = log_tx.send(LogEntry::info(format!(
+                    "Committed {} rows, {:.0} rows/sec",
+                    total_rows, rate
+                )));
+            }
+
+            // Log progress every 1M rows
+            if total_rows % 1_000_000 == 0 && total_rows > 0 {
+                appender.flush()?;
+                let elapsed = start_time.elapsed().as_secs_f64();
+                let rate = total_rows as f64 / elapsed;
+                let _ = log_tx.send(LogEntry::info(format!(
+                    "Parsed {} rows (skipped: {}), {:.0} rows/sec",
+                    total_rows, skipped_rows, rate
+                )));
+            }
         }
+
+        appender.flush()?;
+        conn.execute("COMMIT", [])?;
+
+        let elapsed = start_time.elapsed().as_secs_f64();
+        let _ = log_tx.send(LogEntry::success(format!(
+            "Finished loading {} rows in {:.2}s ({:.0} rows/sec)",
+            total_rows,
+            elapsed,
+            total_rows as f64 / elapsed
+        )));
 
         Ok(format!("Finished sorting {}", self.file_name))
-    }
-
-    pub fn search_if_email(
-        &self,
-        line: &str,
-        separator: char,
-    ) -> Result<(String, String), eyre::Error> {
-        let parts: Vec<&str> = line.split(separator).collect();
-
-        // Find the email (the only part containing '@')
-        if let Some(email_part) = parts.iter().find(|&&p| p.contains('@')) {
-            let email = email_part.trim().to_string();
-
-            // Build the remaining line from parts that do NOT contain '@'
-            let remaining_parts: Vec<&str> = parts
-                .iter()
-                .filter(|&&p| !p.contains('@'))
-                .map(|s| s.trim())
-                .collect();
-            let remaining = remaining_parts.join(&separator.to_string());
-
-            Ok((email, remaining))
-        } else {
-            Err(eyre!("No email found in line: {}", line))
-        }
     }
 
     pub fn search_if_url(
@@ -378,7 +827,7 @@ impl Sort {
                             /*
                             Considers that the format of the import is ulp and so moving it to lpu
                             */
-                            return format!("{}:{}:{}", split[1], split[2], split[0]) ;
+                            return format!("{}:{}:{}", split[1], split[2], split[0]);
                         } else {
 
                             // println!("{} invalid format for '{}'", login, sep);

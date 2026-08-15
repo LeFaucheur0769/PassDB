@@ -18,11 +18,11 @@ impl Searcher {
             .unwrap()
             .join(db_dir)
             .join("sorted")
-            .join("database.parquet");
+            .join("data.db");
 
         if !db_path.exists() {
             return Err(color_eyre::eyre::eyre!(
-                "Parquet file not found at {:?}",
+                "database file not found at {:?}",
                 db_path
             ));
         }
@@ -37,37 +37,87 @@ impl Searcher {
     pub fn search(&mut self) -> Result<bool, color_eyre::Report> {
         self.output.clear();
 
-        let conn = Connection::open_in_memory()?;
+        // Open the persistent database file (not in‑memory)
+        let conn = Connection::open(&self.db_path)?;
+        conn.execute("PRAGMA memory_limit='8GB';", [])?;
+        conn.execute("PRAGMA temp_directory='/tmp/duckdb_temp';", [])?;
+        conn.execute("PRAGMA threads=2;", [])?;
 
-        // Use substring match (LIKE) to mimic the old .contains() behaviour
-        let mut stmt = conn.prepare(
-            "SELECT email, username, password, url, name, other
-             FROM read_parquet(?1)
-             WHERE email LIKE '%' || ?2 || '%'"
-        )?;
 
-        let db_path_str = self.db_path.to_string_lossy().to_string();
-        let mut rows = stmt.query([db_path_str, self.email_to_search.clone()])?;
+        let max_results = 10_000; // hard cap, tune as needed
+        // Query the 'contacts' table directly – no need for read_parquet
+        let mut stmt = conn.prepare(&format!(
+            "SELECT email, password, url, username, name, other, origin
+             FROM contacts
+             WHERE email LIKE ?1 || '%'
+            LIMIT {}",
+        max_results
+    ))?;
 
+        // Bind only the email search term (one parameter)
+        let mut rows = stmt.query([&self.email_to_search])?;
+        let mut count = 0;
         while let Some(row) = rows.next()? {
             let email: Option<String> = row.get(0)?;
-            let username: Option<String> = row.get(1)?;
-            let password: Option<String> = row.get(2)?;
-            let url: Option<String> = row.get(3)?;
+            let password: Option<String> = row.get(1)?;
+            let url: Option<String> = row.get(2)?;
+            let username: Option<String> = row.get(3)?;
             let name: Option<String> = row.get(4)?;
             let other: Option<String> = row.get(5)?;
+            let origin: Option<String> = row.get(6)?;
 
-            // Format the row as a tab‑separated line (replace with your preferred delimiter)
-            let line = format!(
-                "{}\t{}\t{}\t{}\t{}\t{}",
-                email.unwrap_or_default(),
-                username.unwrap_or_default(),
-                password.unwrap_or_default(),
-                url.unwrap_or_default(),
-                name.unwrap_or_default(),
-                other.unwrap_or_default()
-            );
+            let mut parts = Vec::new();
+
+
+            // Only add email if it's not empty
+            if let Some(email) = email {
+                if !email.is_empty() {
+                    parts.push(format!("email : {}", email));
+                }
+            }
+
+            // Only add password if not empty
+            if let Some(password) = password {
+                if !password.is_empty() {
+                    parts.push(format!("password : {}", password));
+                }
+            }
+
+            // Add other fields without labels (or with labels if you prefer)
+            if let Some(url) = url {
+                if !url.is_empty() {
+                    parts.push(format!("url : {}",url));
+                }
+            }
+            if let Some(username) = username {
+                if !username.is_empty() {
+                    parts.push(format!("username : {}",username));
+                }
+            }
+            if let Some(name) = name {
+                if !name.is_empty() {
+                    parts.push(format!("name : {}",name));
+                }
+            }
+            if let Some(other) = other {
+                if !other.is_empty() {
+                    parts.push(format!("other : {}",other));
+                }
+            }
+
+            if let Some(origin) = origin {
+                if !origin.is_empty() {
+                    parts.push(format!("origin : {}",origin));
+                }
+            }
+
+            // Join all non‑empty parts with " | "
+            let line = parts.join(" | ");
             self.output.push(line);
+            count += 1;
+            if count >= max_results {
+                break;
+            }
         }
 
         Ok(true)

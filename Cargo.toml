@@ -25,4 +25,7 @@ anyhow = "1.0.104"
 parquet = "59.2.0"
 arrow = "59.2.0"
 duckdb = { version = "1.10505.0", features = ["bundled"] }
+postgres = "0.19.14"
+csv = "1.4.0"
+serde_json = "1.0.151"
 #arrow-buffer = "59.2.0"

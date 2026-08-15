@@ -13,6 +13,8 @@ use std::path;
 use std::sync::mpsc::{Receiver, Sender, TryRecvError, channel};
 use std::thread;
 use std::time::{Duration, Instant};
+use duckdb::Connection;
+use crate::sorter::parquet_sorter::{init_database, export_to_parquet}; // you'll add these
 
 #[derive(Debug)]
 enum WorkerProgress {
@@ -29,6 +31,7 @@ enum WorkerCommand {
     Resume,
     SkipCurrentFile,
 }
+
 
 pub struct AddCombolist {
     files: Vec<path::PathBuf>,
@@ -179,6 +182,7 @@ pub fn add_combolist<B: Backend>(
     // Channels for communication between threads
     let (progress_tx, progress_rx) = channel::<WorkerProgress>();
     let (command_tx, command_rx) = channel::<WorkerCommand>();
+    let (log_tx, log_rx) = channel::<LogEntry>();   // log channel
 
     // Launch worker thread
     let db_location_clone = db_location.clone();
@@ -186,7 +190,7 @@ pub fn add_combolist<B: Backend>(
     //let total_files = files_clone.len();
 
     thread::spawn(move || {
-        process_files_worker(files_clone, db_location_clone, progress_tx, command_rx);
+        process_files_worker(files_clone, db_location_clone, progress_tx, command_rx, log_tx);
     });
 
     let mut finished = false;
@@ -306,6 +310,12 @@ pub fn add_combolist<B: Backend>(
                     .push(LogEntry::error("Worker thread disconnected"));
                 is_processing = false;
             }
+        }
+
+        if let Ok(log_entry) = log_rx.try_recv() {
+            add_combo.logs.push(log_entry);
+            // Optional: auto‑scroll to the bottom
+            // add_combo.scroll_offset = add_combo.logs.len().saturating_sub(10) as u16;
         }
 
         // Step 2: Handle input (non-blocking)
@@ -437,22 +447,35 @@ fn process_files_worker(
     db_location: String,
     progress_tx: Sender<WorkerProgress>,
     command_rx: Receiver<WorkerCommand>,
+    log_tx: Sender<LogEntry>,
 ) {
+    use duckdb::Connection;
+    use crate::sorter::parquet_sorter::{init_database, export_to_parquet};
+
     let mut paused = false;
     let mut should_stop = false;
     let mut skip_current = false;
 
+    // --- 1. Ouvrir la base de données persistante ---
+    let db_path = format!("{}/sorted/data.db", db_location);
+    let conn = match init_database(&db_path) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("Failed to open database: {}", e);
+            let _ = progress_tx.send(WorkerProgress::WorkerFinished);
+            return;
+        }
+    };
+
+    // --- 2. Traiter chaque fichier ---
     for (file_index, file_path) in files.iter().enumerate() {
-        //log!("before should stop");
         if should_stop {
             break;
         }
-        //log!("checking file {}", file_path.to_string_lossy());
 
-        // Reset skip flag for new file
         skip_current = false;
 
-        // Check for commands before starting a new file
+        // Gestion des commandes (identique)
         loop {
             match command_rx.try_recv() {
                 Ok(WorkerCommand::Stop) => {
@@ -465,21 +488,20 @@ fn process_files_worker(
                     skip_current = true;
                     break;
                 }
-                Err(_) => break, // No more commands
+                Err(_) => break,
             }
         }
 
         if skip_current {
-            continue; // Skip this file
+            continue;
         }
 
-        // Process current file
-        //log!("Processing hash of file {}", file_path.to_string_lossy());
+        // Hachage du fichier (inchangé)
         if let Ok(mut hashfile) = sorter::HashFile::new(file_path, &db_location) {
             let mut file_processed = false;
 
             while !file_processed && !should_stop && !skip_current {
-                // Check for commands
+                // Gestion des commandes (identique)
                 loop {
                     match command_rx.try_recv() {
                         Ok(WorkerCommand::Stop) => {
@@ -493,7 +515,7 @@ fn process_files_worker(
                             file_processed = true;
                             break;
                         }
-                        Err(_) => break, // No more commands
+                        Err(_) => break,
                     }
                 }
 
@@ -506,13 +528,13 @@ fn process_files_worker(
                     continue;
                 }
 
-                // Update hash progress
+                // Mise à jour du hachage
                 if hashfile.update().unwrap_or(false) {
                     let progress = hashfile.progress();
                     let _ = progress_tx.send(WorkerProgress::FileProgress(file_index, progress));
-                    thread::sleep(Duration::from_millis(10)); // Prevent tight loop
+                    thread::sleep(Duration::from_millis(10));
                 } else {
-                    // File hash completed
+                    // Hachage terminé
                     if let Ok((hash, file_exist)) = hashfile.finalize() {
                         let _ = progress_tx.send(WorkerProgress::FileCompleted(
                             file_index,
@@ -520,30 +542,19 @@ fn process_files_worker(
                             file_exist,
                         ));
 
-                        // If it's a new file, sort it
-                        //log!("Here starts the sorting process");
+                        // Si le fichier est nouveau, on le trie dans la base de données
                         if !file_exist {
-                            //log!("The file did not exist and is being sorted");
                             match sorter::Sort::new(file_path, &db_location) {
                                 Ok(mut sorter) => {
-                                    // println!("DEBUG: Starting to sort file {:?}", file_path);
-                                    let result = sorter.sort_optimised_safe();
-                                    //println!(
-                                    // "DEBUG: Sort result for {:?}: {:?}",
-                                    // file_path, result
-                                    // );
+                                    // --- 3. Utiliser sort_into_db au lieu de sort_optimised_safe ---
+                                    let result = sorter.sort_into_db(&conn, &log_tx);
                                     if let Err(e) = progress_tx
                                         .send(WorkerProgress::SortCompleted(file_index, result))
                                     {
-                                        eprintln!("DEBUG: Failed to send sort completion: {}", e);
+                                        eprintln!("Failed to send sort completion: {}", e);
                                     }
                                 }
                                 Err(e) => {
-                                    eprintln!(
-                                        "DEBUG: Failed to create sorter for {:?}: {}",
-                                        file_path, e
-                                    );
-                                    // Send an error result anyway
                                     let _ = progress_tx.send(WorkerProgress::SortCompleted(
                                         file_index,
                                         Err(color_eyre::eyre::eyre!(
@@ -560,11 +571,19 @@ fn process_files_worker(
             }
         }
 
-        // Check stop condition again
         if should_stop {
             break;
         }
     }
+
+    // --- 4. Exporter vers Parquet une seule fois, si tout s'est bien passé ---
+    // if !should_stop {
+    //     let parquet_path = format!("{}/sorted/database.parquet", db_location);
+    //     if let Err(e) = export_to_parquet(&conn, &parquet_path) {
+    //         eprintln!("Failed to export to Parquet: {}", e);
+    //         // On peut envoyer une erreur à l'UI si nécessaire
+    //     }
+    // }
 
     let _ = progress_tx.send(WorkerProgress::WorkerFinished);
 }

@@ -28,7 +28,6 @@ use yaml_rust2::{self};
 
 use crate::init::check_vaild_config_file::check_config_file_exists;
 use crate::init::check_valid_install_folders::check_for_config_folders;
-use crate::tools::clean_files;
 use crate::tui::test_tui::test_fun;
 
 /// Simple program to greet a person
@@ -190,7 +189,7 @@ impl PassDB {
             }
         };
 
-        search.search();
+        // search.search();
 
         Ok(())
     }
