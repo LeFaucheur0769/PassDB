@@ -1,69 +1,176 @@
 # PassDB
 
+[![Rust](https://img.shields.io/badge/Rust-1.70+-orange.svg)](https://www.rust-lang.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 ## Description
 
-**PassDB** is a Python tool designed to efficiently sort combolists and provide fast, easy retrieval of `email:password` combinations. It's ideal for parsing and managing credential dumps with minimal effort.
+**PassDB** is a high-performance, Rust-based tool for parsing, deduplicating, and querying large credential datasets (combolists). It features a modern Terminal User Interface (TUI) for easy interaction and utilizes a powerful [DuckDB](https://duckdb.org/) backend for fast and efficient data management.
 
-## Recommendations
+This is a complete rewrite of the original Python version, designed for speed, memory efficiency, and a superior user experience.
 
-For optimal performance, we recommend using PassDB on Linux, as file I/O operations tend to be significantly faster compared to Windows.
-Additionally, using a Btrfs-formatted system is advised. Btrfs supports seamless compression with zstd, which helps reduce the database size and improves performance.
-For the best experience, install PassDB on an SSD rather than an HDD, as SSDs handle small file access much more efficiently.
+## ✨ Key Features
 
-## Installation
+*   **⚡ High Performance:** Written in Rust and using DuckDB for data storage and querying, PassDB is optimized to handle massive files with millions of entries.
+*   **🖥️ Interactive TUI:** A user-friendly, keyboard-driven terminal interface built with `ratatui` makes managing and searching your databases simple and intuitive.
+*   **🤖 Command-Line Interface (CLI):** Supports headless operation for integration into scripts and automation workflows.
+*   **📂 Intelligent File Parsing:** Automatically detects and parses various input formats:
+    *   Standard `email:password`, `user:pass`, and `url:login:pass` combos.
+    *   `android://` formatted strings.
+    *   JSON files (single objects or arrays).
+    *   CSV files with header detection (handles common delimiters like `,`, `;`, and `\t`).
+    *   French-style CSV files (`M., Mme.` format).
+*   **💾 Deduplication:** Uses MD5 hashing to avoid re-processing and re-importing the same file, saving time and disk space.
+*   **🔍 Fast Search:** Quickly search for a specific email or username across millions of records.
+*   **🛠️ Configurable:** Easily customize import/export paths and database location via a simple `passdb.yml` configuration file.
+*   **🧩 Extensible:** Modular architecture allows for adding new parsers and features.
 
-### 1. Clone the repository
+## 🚀 Getting Started
 
-```bash
-git clone https://github.com/LeFaucheur0769/PassDB.git
-cd PassDB
+### Prerequisites
+
+*   **Rust and Cargo:** Ensure you have a working Rust toolchain installed. If not, follow the instructions at [rustup.rs](https://rustup.rs/).
+*   **DuckDB:** The app uses the DuckDB library. The build process will handle the dependencies, but you may need the system libraries (like `libduckdb-dev`) installed on your system.
+
+### Installation
+
+1.  **Clone the Repository:**
+    ```bash
+    git clone https://github.com/LeFaucheur0769/PassDB.git
+    cd PassDB
+    ```
+
+2.  **Build the Application:**
+    ```bash
+    cargo build --release
+    ```
+    The compiled binary will be located at `target/release/passdb`.
+
+3.  **(Optional) Install the Binary:**
+    You can copy the binary to a directory in your `PATH` for easy access.
+    ```bash
+    sudo cp target/release/passdb /usr/local/bin/
+    ```
+
+### Configuration
+
+PassDB relies on a `passdb.yml` configuration file in the same directory as the binary or specified via the `--config` flag.
+
+On the first run, PassDB will create a default configuration file if one is not present. You can customize the following options:
+
+```yaml
+# passdb.yml - Example Configuration
+debug: false
+db_location: "db/"                # Where to store the processed database and hash files
+create_db_in_toolFolder: true     # Keeps everything inside the project folder
+import_location: "import/"        # Folder to watch for new combolists to import
+export_results_location: "export/" # Where to save search results
+print_result_export_file: false   # Print results to console when exporting
+check_if_valid_combolist: true
+nbr_of_check_per_file: 10
+file_to_sort_location: "to_sort/"
+file_to_sort_not_txt_files: "to_sort/not_txt/"
+file_urlloginpass_dir: "to_sort/url_login_pass/"
+add_file: false
 ```
 
-### 2. Set up the Python environment
+## 🎮 Usage
+
+PassDB can be used in two main modes: **Interactive (TUI)** and **Command-Line (CLI)**.
+
+### Interactive Terminal User Interface (TUI)
+
+Launch the interactive menu system:
 
 ```bash
-python -m venv .venv
-# On Windows:
-.venv\Scripts\activate
-# On Unix/macOS:
-source .venv/bin/activate
+./passdb -i
 ```
 
-### 3. Install dependencies
+or
 
 ```bash
-pip install -r requirements.txt
+./passdb --interactive
 ```
 
-### 3. Setup
+From the main menu, you can:
 
-#### Windows
+*   **Add a Combolist:** Select files from your import directory to parse, hash (for deduplication), and load into the database.
+*   **Search a Combolist:** Search the database for a specific email or username and view the results.
+*   **Access Tools:** Clean duplicates and perform other maintenance tasks (Coming Soon).
 
-Should be ready to work however the process of adding files to the database is much slower than on linux due to windows limitations while handeling many I/O actions. If you can't run it under linux the best is to run everything inside wsl and move the files in the wsl disk however most of the tool should still work if you are using windows
+#### TUI Controls (General)
 
-#### Linux
+*   `↑` / `↓` : Navigate menus.
+*   `Enter` : Select an option.
+*   `q` / `Esc` : Go back a screen or quit the application.
 
-Make sure that the files in the src folder are executable by the stystem or else you will have an error and have to delete the hash_db file before trying again.
+#### Add a Combolist (AddDbScreen)
 
-## Getting Started
+When adding a combolist, you'll see the progress of the hashing and importing process.
 
-On the first run, PassDB will automatically create the necessary folders and files.
-You can customize these paths and behaviors in the [configuration file](#gear-config).
+*   **`p`** : Pause/Resume processing.
+*   **`s`** : Skip the current file.
+*   **`c`** : Clear the log display.
+*   **`q`** / `Esc` : Stop processing and return to the main menu.
 
-## Usage
+#### Search a Combolist (SearchDbScreen)
 
-> _Usage instructions coming soon..._
+1.  Choose to "Print the output to the terminal".
+2.  Press `e` to enter edit mode.
+3.  Type the email or username you are searching for.
+4.  Press `Enter` to start the search.
+5.  The results will be displayed. Use `↑` / `↓` to scroll. Press `q` to go back.
 
-## ⚙ Config
+### Command-Line Interface (CLI)
 
-PassDB is highly configurable via the `passdb.yml` file located in the project directory.
+For non-interactive or scripted use, you can run PassDB directly with arguments.
 
-| Option                     | Description                                                                                                                         |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `db_location`              | Path where processed combolists (databases) will be stored                                                                          |
-| `create_db_in_toolFolder`  | If `true`, PassDB stores databases inside the tool’s directory. If `false`, you will be prompted for a custom location on first run |
-| `import_location`          | Path from which raw combolists are imported                                                                                         |
-| `export_results_location`  | Directory where search results or exports are saved                                                                                 |
-| `print_result_export_file` | If `true`, results will be printed to the terminal even if they're being exported                                                   |
-| `dynamic_menus`            | If `true`, PassDB will use the interactives menus                                                                                   |
-| `quiet`                    | If `true`, disables interactivity and only prints results (useful for scripting)                                                    |
+**Basic Search Example:**
+```bash
+./passdb -e "admin@example.com" --config passdb.yml
+```
+
+**Help:**
+```bash
+./passdb --help
+```
+
+```
+Simple program to greet a person
+
+Usage: passdb [OPTIONS] --email <EMAIL>
+
+Options:
+  -c, --config <CONFIG>      Location of the config file [default: passdb.yml]
+  -i, --interactive          Launch PassDB in interactive mode
+  -d, --debug                Enable debug mode
+  -v, --verbose              Enable verbose mode
+  -q, --quiet                Disable the output
+  -e, --email <EMAIL>        Specify an email address to verify
+      --import <IMPORT>      Specify an import directory [default: import/]
+  -o, --output <OUTPUT>      Specify an output file
+  -t, --test                 Run the module test
+  -h, --help                 Print help
+  -V, --version              Print version
+```
+
+## 🧱 Architecture
+
+The application is built with a modular architecture, consisting of several key components:
+
+*   **`main.rs`**: The entry point. Parses command-line arguments using `clap`, initializes the application, and runs the TUI or CLI mode.
+*   **`tui/`**: The terminal user interface built with `ratatui`, `crossterm`, and a screen-based navigation system.
+*   **`sorter/`**: The core parsing and import logic.
+    *   `sorter.rs`: Contains the logic for parsing different file formats (JSON, CSV, `:`-separated) and inserting them into the DuckDB database.
+    *   `hash_file.rs`: Calculates MD5 hashes of files for deduplication.
+*   **`search/`**: The search engine. Queries the DuckDB database efficiently for email or username matches.
+*   **`init/`**: Handles initial setup, validating the configuration file, and creating necessary directories.
+*   **`logging/`**: A simple, structured logging system used throughout the application for progress tracking and debugging.
+
+## 🤝 Contributing
+
+Contributions are welcome! If you find a bug or have a feature request, please open an issue. Pull requests are even better. For major changes, please open an issue first to discuss what you would like to change.
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
