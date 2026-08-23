@@ -1,71 +1,182 @@
 # PassDB
 
-[![Rust](https://img.shields.io/badge/Rust-1.70+-orange.svg)](https://www.rust-lang.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+<div align="center">
 
-## Description
+### High‑performance combolist parser, deduplicator, and search engine
 
-**PassDB** is a high-performance, Rust-based tool for parsing, deduplicating, and querying large credential datasets (combolists). It features a modern Terminal User Interface (TUI) for easy interaction and utilizes a powerful [DuckDB](https://duckdb.org/) backend for fast and efficient data management.
+**Built for handling massive credential datasets** – parse millions of `email:password` lines, JSON, CSV, and more – with an **interactive TUI** and a **fast DuckDB backend**.
 
-This is a complete rewrite of the original Python version, designed for speed, memory efficiency, and a superior user experience.
+**Designed for** security researchers, penetration testers, OSINT analysts, bug-bounty hunters, and anyone who needs to manage large credential collections **legally and efficiently**.
 
-## ✨ Key Features
+<br/>
 
-*   **⚡ High Performance:** Written in Rust and using DuckDB for data storage and querying, PassDB is optimized to handle massive files with millions of entries.
-*   **🖥️ Interactive TUI:** A user-friendly, keyboard-driven terminal interface built with `ratatui` makes managing and searching your databases simple and intuitive.
-*   **🤖 Command-Line Interface (CLI):** Supports headless operation for integration into scripts and automation workflows.
-*   **📂 Intelligent File Parsing:** Automatically detects and parses various input formats:
-    *   Standard `email:password`, `user:pass`, and `url:login:pass` combos.
-    *   `android://` formatted strings.
-    *   JSON files (single objects or arrays).
-    *   CSV files with header detection (handles common delimiters like `,`, `;`, and `\t`).
-    *   French-style CSV files (`M., Mme.` format).
-*   **💾 Deduplication:** Uses MD5 hashing to avoid re-processing and re-importing the same file, saving time and disk space.
-*   **🔍 Fast Search:** Quickly search for a specific email or username across millions of records.
-*   **🛠️ Configurable:** Easily customize import/export paths and database location via a simple `passdb.yml` configuration file.
-*   **🧩 Extensible:** Modular architecture allows for adding new parsers and features.
+[![License](https://img.shields.io/github/license/LeFaucheur0769/PassDB?style=flat-square&labelColor=0D1117&color=7B61FF)](LICENSE)
+[![Rust](https://img.shields.io/badge/Rust-1.70+-0D1117?style=flat-square&labelColor=0D1117&logo=rust&logoColor=7B61FF)](https://www.rust-lang.org/)
+[![Stars](https://img.shields.io/github/stars/LeFaucheur0769/PassDB?style=flat-square&labelColor=0D1117&color=7B61FF)](https://github.com/LeFaucheur0769/PassDB/stargazers)
+[![Forks](https://img.shields.io/github/forks/LeFaucheur0769/PassDB?style=flat-square&labelColor=0D1117&color=7B61FF)](https://github.com/LeFaucheur0769/PassDB/network/members)
+[![Issues](https://img.shields.io/github/issues/LeFaucheur0769/PassDB?style=flat-square&labelColor=0D1117&color=7B61FF)](https://github.com/LeFaucheur0769/PassDB/issues)
+[![Last Commit](https://img.shields.io/github/last-commit/LeFaucheur0769/PassDB?style=flat-square&labelColor=0D1117&color=7B61FF)](https://github.com/LeFaucheur0769/PassDB/commits/main)
 
-## 🚀 Getting Started
+<br/>
 
-### Prerequisites
+![](https://img.shields.io/badge/Rust-7B61FF?style=for-the-badge&labelColor=0D1117) &nbsp;
+![](https://img.shields.io/badge/TUI-7B61FF?style=for-the-badge&labelColor=0D1117) &nbsp;
+![](https://img.shields.io/badge/DuckDB-7B61FF?style=for-the-badge&labelColor=0D1117) &nbsp;
+![](https://img.shields.io/badge/CLI-7B61FF?style=for-the-badge&labelColor=0D1117) &nbsp;
+![](https://img.shields.io/badge/Linux_|_macOS-7B61FF?style=for-the-badge&labelColor=0D1117&logo=linux&logoColor=white)
 
-*   **Rust and Cargo:** Ensure you have a working Rust toolchain installed. If not, follow the instructions at [rustup.rs](https://rustup.rs/).
-*   **DuckDB:** The app uses the DuckDB library. The build process will handle the dependencies, but you may need the system libraries (like `libduckdb-dev`) installed on your system.
+<br/>
 
-### Installation
+<a href="#installation"><img src="https://img.shields.io/badge/Install_Now-7B61FF?style=for-the-badge&logo=rocket&logoColor=white" alt="Install Now"></a>&nbsp;
+<a href="#quick-commands"><img src="https://img.shields.io/badge/Quick_Commands-30363D?style=for-the-badge&logo=gnometerminal&logoColor=white" alt="Quick Commands"></a>&nbsp;
+<a href="#configuration"><img src="https://img.shields.io/badge/Configuration-30363D?style=for-the-badge&logo=settings&logoColor=white" alt="Configuration"></a>
 
-1.  **Clone the Repository:**
-    ```bash
-    git clone https://github.com/LeFaucheur0769/PassDB.git
-    cd PassDB
-    ```
+</div>
 
-2.  **Build the Application:**
-    ```bash
-    cargo build --release
-    ```
-    The compiled binary will be located at `target/release/passdb`.
+---
 
-3.  **(Optional) Install the Binary:**
-    You can copy the binary to a directory in your `PATH` for easy access.
-    ```bash
-    sudo cp target/release/passdb /usr/local/bin/
-    ```
+## Contents
 
-### Configuration
+- [Why PassDB?](#why-passdb)
+- [Key Features](#key-features)
+- [Installation](#installation)
+- [Quick Commands](#quick-commands)
+  - [Interactive TUI](#interactive-tui)
+  - [Command-Line Interface (CLI)](#command-line-interface-cli)
+- [Configuration](#configuration)
+- [Architecture](#architecture)
+- [Contributing](#contributing)
+- [License](#license)
 
-PassDB relies on a `passdb.yml` configuration file in the same directory as the binary or specified via the `--config` flag.
+---
 
-On the first run, PassDB will create a default configuration file if one is not present. You can customize the following options:
+## Why PassDB?
+
+- **⚡ Blazing fast** – written in Rust, uses DuckDB for storage and querying; handles hundreds of millions of rows with ease.
+- **🖥️ Interactive TUI** – a full‑screen terminal interface built with `ratatui` for comfortable navigation and progress monitoring.
+- **🤖 CLI headless mode** – scriptable for automation and integration into pipelines.
+- **📦 Intelligent parsing** – automatically detects and imports:
+  - `email:password`, `user:pass`, `url:login:pass`
+  - `android://` URIs
+  - JSON (single objects or arrays)
+  - CSV with header detection (supports `,`, `;`, `\t`)
+  - French‑style CSV (`M., Mme.` format)
+- **💾 Built‑in deduplication** – MD5 hashing prevents re‑processing the same file, saving time and space.
+- **🔍 Fast search** – query by email or username with instant results across millions of records.
+- **🛠️ Configurable** – all paths and behaviours are set in a simple `passdb.yml` file.
+- **🧱 Modular** – clean separation of parsing, sorting, searching, and UI layers, making it easy to extend.
+
+---
+
+## Key Features
+
+### 🖥️ Interactive TUI
+Launch with `passdb -i`. The main menu gives you:
+- **Add a combolist** – select files from your import directory, watch hashing and import progress, pause/resume/skip.
+- **Search a combolist** – type an email or username, get results instantly.
+- **Tools** (coming soon) – clean duplicates, manage databases.
+
+**TUI controls:**  
+`↑`/`↓` navigate, `Enter` select, `q`/`Esc` go back.  
+During import: `p` pause/resume, `s` skip current file, `c` clear logs.
+
+### 🧠 CLI Mode
+Run non‑interactive searches:
+```bash
+passdb -e "admin@example.com"
+```
+Supports full argument parsing for automation.
+
+### 🔄 Smart File Processing
+- **Hash deduplication** – each file is MD5‑hashed; if already imported, it's skipped.
+- **Multi‑format parser** – handles various delimiters, quotes, and structures.
+- **Batch commit** – transactions commit every 5M rows for optimal performance.
+
+### 🗃️ Powerful Database
+Uses DuckDB with:
+- In‑memory or persistent storage.
+- Full SQL querying (future extensions).
+- Parallel processing and memory limits tuneable.
+
+### 📁 Headless Operations
+The same core engine drives a non‑interactive orchestrator for pipelines (planned for future releases).
+
+---
+
+## Installation
+
+Requires **Rust 1.70+** and **Cargo**. Works on Linux and macOS (Windows is not supported).
+
+### From source (recommended)
+
+```bash
+# 1 – clone the repo
+git clone https://github.com/LeFaucheur0769/PassDB.git
+cd PassDB
+
+# 2 – build in release mode
+cargo build --release
+
+# 3 – (optional) install the binary to your PATH
+sudo cp target/release/passdb /usr/local/bin/
+```
+
+Now you can run `passdb` from anywhere.
+
+### Docker (if provided)
+
+```bash
+docker run -it --rm lefaucheur0769/passdb:latest
+```
+
+### Development setup
+
+```bash
+cargo build
+cargo run -- --help
+```
+
+---
+
+## Quick Commands
+
+### Interactive TUI
+
+```bash
+passdb -i
+```
+
+From the main menu:
+- **Add a combolist** – pick files from your `import/` directory.
+- **Search a combolist** – enter an email or username.
+
+### Command-Line Interface (CLI)
+
+| Command | Description |
+|---------|-------------|
+| `passdb -e "user@example.com"` | Search for that email (prints results) |
+| `passdb -c custom.yml` | Use a different config file |
+| `passdb -i` | Launch the interactive TUI |
+| `passdb -t` | Run internal tests |
+| `passdb -v` / `-d` | Enable verbose / debug output |
+| `passdb -q` | Suppress output (quiet mode) |
+| `passdb --help` | Show all options |
+
+---
+
+## Configuration
+
+PassDB uses a YAML configuration file, default `passdb.yml`. On first run it checks and creates necessary directories.
+
+Example configuration:
 
 ```yaml
-# passdb.yml - Example Configuration
 debug: false
-db_location: "db/"                # Where to store the processed database and hash files
-create_db_in_toolFolder: true     # Keeps everything inside the project folder
-import_location: "import/"        # Folder to watch for new combolists to import
-export_results_location: "export/" # Where to save search results
-print_result_export_file: false   # Print results to console when exporting
+db_location: "db/"                     # where the DuckDB and hashdb live
+create_db_in_toolFolder: true          # keep everything inside project folder
+import_location: "import/"             # folder to scan for new combolists
+export_results_location: "export/"     # output directory for search results
+print_result_export_file: false        # also print to console when exporting
 check_if_valid_combolist: true
 nbr_of_check_per_file: 10
 file_to_sort_location: "to_sort/"
@@ -74,103 +185,48 @@ file_urlloginpass_dir: "to_sort/url_login_pass/"
 add_file: false
 ```
 
-## 🎮 Usage
+All paths are relative to the binary’s working directory unless absolute.
 
-PassDB can be used in two main modes: **Interactive (TUI)** and **Command-Line (CLI)**.
+---
 
-### Interactive Terminal User Interface (TUI)
+## Architecture
 
-Launch the interactive menu system:
+The application is organised into several modules:
 
-```bash
-./passdb -i
-```
+- **`main.rs`** – entry point, CLI parsing, and initialisation.
+- **`tui/`** – the interactive terminal UI (screen stack, contexts, screens).
+- **`sorter/`** – core parsing logic: file hashing, format detection, DuckDB insertion.
+- **`search/`** – query engine against the DuckDB database.
+- **`init/`** – setup, config validation, folder creation.
+- **`logging/`** – structured logging with levels and formatting.
 
-or
+Data flow:
+1. User selects a file (via TUI or CLI).
+2. File is MD5‑hashed; if hash exists, skip.
+3. File is parsed line by line (or JSON) into structured `Contact` rows.
+4. Rows are committed to DuckDB in batches.
+5. Search queries are run via SQL `LIKE` with limit.
 
-```bash
-./passdb --interactive
-```
+---
 
-From the main menu, you can:
+## Contributing
 
-*   **Add a Combolist:** Select files from your import directory to parse, hash (for deduplication), and load into the database.
-*   **Search a Combolist:** Search the database for a specific email or username and view the results.
-*   **Access Tools:** Clean duplicates and perform other maintenance tasks (Coming Soon).
+Contributions are welcome! Please open an issue or pull request.
 
-#### TUI Controls (General)
+- **Adding a new parser?** Extend the `Sort` struct and the parsing logic.
+- **Improving the TUI?** Look at `tui/screens/`.
+- **Adding commands?** Extend the CLI arguments in `main.rs`.
 
-*   `↑` / `↓` : Navigate menus.
-*   `Enter` : Select an option.
-*   `q` / `Esc` : Go back a screen or quit the application.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-#### Add a Combolist (AddDbScreen)
+> **Important:** Use this tool only on data you own or are legally authorised to test.
 
-When adding a combolist, you'll see the progress of the hashing and importing process.
+---
 
-*   **`p`** : Pause/Resume processing.
-*   **`s`** : Skip the current file.
-*   **`c`** : Clear the log display.
-*   **`q`** / `Esc` : Stop processing and return to the main menu.
+## License
 
-#### Search a Combolist (SearchDbScreen)
+This project is licensed under the MIT License – see the [LICENSE](LICENSE) file for details.
 
-1.  Choose to "Print the output to the terminal".
-2.  Press `e` to enter edit mode.
-3.  Type the email or username you are searching for.
-4.  Press `Enter` to start the search.
-5.  The results will be displayed. Use `↑` / `↓` to scroll. Press `q` to go back.
+---
 
-### Command-Line Interface (CLI)
-
-For non-interactive or scripted use, you can run PassDB directly with arguments.
-
-**Basic Search Example:**
-```bash
-./passdb -e "admin@example.com" --config passdb.yml
-```
-
-**Help:**
-```bash
-./passdb --help
-```
-
-```
-Simple program to greet a person
-
-Usage: passdb [OPTIONS] --email <EMAIL>
-
-Options:
-  -c, --config <CONFIG>      Location of the config file [default: passdb.yml]
-  -i, --interactive          Launch PassDB in interactive mode
-  -d, --debug                Enable debug mode
-  -v, --verbose              Enable verbose mode
-  -q, --quiet                Disable the output
-  -e, --email <EMAIL>        Specify an email address to verify
-      --import <IMPORT>      Specify an import directory [default: import/]
-  -o, --output <OUTPUT>      Specify an output file
-  -t, --test                 Run the module test
-  -h, --help                 Print help
-  -V, --version              Print version
-```
-
-## 🧱 Architecture
-
-The application is built with a modular architecture, consisting of several key components:
-
-*   **`main.rs`**: The entry point. Parses command-line arguments using `clap`, initializes the application, and runs the TUI or CLI mode.
-*   **`tui/`**: The terminal user interface built with `ratatui`, `crossterm`, and a screen-based navigation system.
-*   **`sorter/`**: The core parsing and import logic.
-    *   `sorter.rs`: Contains the logic for parsing different file formats (JSON, CSV, `:`-separated) and inserting them into the DuckDB database.
-    *   `hash_file.rs`: Calculates MD5 hashes of files for deduplication.
-*   **`search/`**: The search engine. Queries the DuckDB database efficiently for email or username matches.
-*   **`init/`**: Handles initial setup, validating the configuration file, and creating necessary directories.
-*   **`logging/`**: A simple, structured logging system used throughout the application for progress tracking and debugging.
-
-## 🤝 Contributing
-
-Contributions are welcome! If you find a bug or have a feature request, please open an issue. Pull requests are even better. For major changes, please open an issue first to discuss what you would like to change.
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+*Your favourite combolist manager – now in Rust.*
