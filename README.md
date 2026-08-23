@@ -1,6 +1,8 @@
 # PassDB
 
-<div align="center">
+<p align="center">
+  <img src="assets/banner.svg" alt="PassDB banner" width="100%">
+</p>
 
 ### High‑performance combolist parser, deduplicator, and search engine
 
