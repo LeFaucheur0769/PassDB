@@ -117,17 +117,12 @@ cd PassDB
 # 2 – build in release mode
 cargo build --release
 
-# 3 – (optional) install the binary to your PATH
+# 3 – (optional) install the binary to your PATH (you must add passdb.yml to the same directory/provide a configuration file)
 sudo cp target/release/passdb /usr/local/bin/
 ```
 
 Now you can run `passdb` from anywhere.
 
-### Docker (if provided)
-
-```bash
-docker run -it --rm lefaucheur0769/passdb:latest
-```
 
 ### Development setup
 
