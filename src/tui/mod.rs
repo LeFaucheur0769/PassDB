@@ -1,10 +1,8 @@
-pub mod add_combolist;
-pub mod search_combolist;
-pub mod search_input;
-pub mod search_output;
-pub mod tui;
-pub mod test_tui;
+mod app;
+mod context;
+mod screen;
+pub mod screens;
 
-pub use search_combolist::SearchCombolist;
-pub use search_output::SearchOutput;
-pub use tui::tui;
+pub use app::App;
+pub use context::AppContext;
+pub use screen::{Action, Screen};

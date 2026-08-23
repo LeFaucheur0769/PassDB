@@ -11,16 +11,19 @@ mod test_utils;
 pub mod tools;
 mod tui;
 pub mod init;
+
 // Import clap to use arguments with PassDB
 
+use clap::{CommandFactory, Parser, error::Result};
+use std::process::exit;
 use std::{
     env,
     fs::{self},
     path::PathBuf,
     vec,
 };
-use std::process::exit;
-use clap::{CommandFactory, Parser, error::Result};
+
+use ratatui::{DefaultTerminal};
 
 // Imports
 
@@ -28,7 +31,8 @@ use yaml_rust2::{self};
 
 use crate::init::check_vaild_config_file::check_config_file_exists;
 use crate::init::check_valid_install_folders::check_for_config_folders;
-use crate::tui::test_tui::test_fun;
+use crate::tui::{App, AppContext};
+
 
 /// Simple program to greet a person
 #[derive(Parser, Debug)]
@@ -155,7 +159,7 @@ impl PassDB {
     ) -> color_eyre::Result<()> {
         color_eyre::install()?;
         println!("running the module test");
-        test_fun()?;
+        // test_fun()?;
 
         // let sorter_test = sorter::sorter::Sort::new(
         //     Path::new("/home/grimreaper/Desktop/DEV/Rust/project/PassDB/test.txt"),
@@ -167,12 +171,10 @@ impl PassDB {
     }
 
     fn run_menu(&mut self) {
-        let _menu = tui::tui(
-            self.import_location.clone(),
-            self.db_location.clone(),
-            self.file_to_sort_location.clone(),
-            self.export_results_location.clone(),
-        );
+        let ctx = AppContext::new(self.import_location.clone(), self.db_location.clone(), self.export_results_location.clone());
+        let mut app = App::new(ctx);
+        let mut terminal = ratatui::init();
+        app.run(&mut terminal).unwrap();
         // let _clean = CleanLine::new("ttt");
     }
 

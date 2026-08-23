@@ -592,7 +592,7 @@ impl Sort {
 
             // -------- 5. Colon combos --------
             if !parsed && trimmed.contains(':') {
-                let parts: Vec<&str> = trimmed.split(separator).collect();
+                let parts: Vec<&str> = trimmed.split(':').collect();
                 if parts.len() >= 3 {
                     let password = parts.last().unwrap().to_string();
                     let email_or_username = parts[parts.len() - 2].to_string();
