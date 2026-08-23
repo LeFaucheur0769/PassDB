@@ -1,0 +1,355 @@
+<svg width="100%" viewBox="0 0 1100 360" role="img" xmlns="http://www.w3.org/2000/svg">
+    <title>PassDB — high-performance credential dataset parser and search engine</title>
+    <desc>Dark terminal-inspired PassDB banner featuring a purple gradient wordmark, database visualization, and Rust, DuckDB, TUI and CLI technology indicators.</desc>
+
+    <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#0D1117"/>
+            <stop offset="55%" stop-color="#111827"/>
+            <stop offset="100%" stop-color="#0D1117"/>
+        </linearGradient>
+
+        <linearGradient id="purple" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#7B61FF"/>
+            <stop offset="50%" stop-color="#9B8CFF"/>
+            <stop offset="100%" stop-color="#6E56CF"/>
+        </linearGradient>
+
+        <linearGradient id="glow" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#7B61FF" stop-opacity=".35"/>
+            <stop offset="100%" stop-color="#7B61FF" stop-opacity="0"/>
+        </linearGradient>
+
+        <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="10" result="blur"/>
+            <feMerge>
+                <feMergeNode in="blur"/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+
+        <filter id="softGlow">
+            <feGaussianBlur stdDeviation="4" result="blur"/>
+            <feMerge>
+                <feMergeNode in="blur"/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+
+        <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+            <path d="M32 0H0V32" fill="none" stroke="#7B61FF" stroke-opacity=".045"/>
+        </pattern>
+
+        <clipPath id="terminalClip">
+            <rect x="34" y="31" width="1032" height="298" rx="14"/>
+        </clipPath>
+    </defs>
+
+    <!-- Background -->
+    <rect width="1100" height="360" fill="#080B10"/>
+
+    <rect
+            x="18"
+            y="18"
+            width="1064"
+            height="324"
+            rx="18"
+            fill="url(#bg)"
+            stroke="#2A2F3A"
+            stroke-width="1.5"
+    />
+
+    <rect
+            x="34"
+            y="31"
+            width="1032"
+            height="298"
+            rx="14"
+            fill="url(#grid)"
+    />
+
+    <!-- Purple ambient glow -->
+    <ellipse
+            cx="820"
+            cy="180"
+            rx="300"
+            ry="190"
+            fill="url(#glow)"
+            opacity=".45"
+    />
+
+    <!-- Terminal header -->
+    <rect
+            x="34"
+            y="31"
+            width="1032"
+            height="38"
+            rx="14"
+            fill="#0A0E14"
+    />
+
+    <rect
+            x="34"
+            y="54"
+            width="1032"
+            height="15"
+            fill="#0A0E14"
+    />
+
+    <circle cx="57" cy="50" r="6" fill="#FF5F57"/>
+    <circle cx="78" cy="50" r="6" fill="#FEBC2E"/>
+    <circle cx="99" cy="50" r="6" fill="#28C840"/>
+
+    <text
+            x="126"
+            y="54"
+            fill="#4F5868"
+            font-family="monospace"
+            font-size="11"
+            letter-spacing="1"
+    >PASSDB // TERMINAL</text>
+
+    <text
+            x="1038"
+            y="54"
+            fill="#596474"
+            font-family="monospace"
+            font-size="11"
+            text-anchor="end"
+    >passdb -i</text>
+
+    <!-- Left content -->
+    <g font-family="monospace">
+
+        <!-- Prompt -->
+        <text x="62" y="102" fill="#7B61FF" font-size="13">$</text>
+        <text x="78" y="102" fill="#7A8494" font-size="13">passdb</text>
+        <text x="136" y="102" fill="#B9C0CC" font-size="13">--fast --dedupe --search</text>
+
+        <!-- Wordmark -->
+        <text
+                x="60"
+                y="154"
+                fill="#7B61FF"
+                opacity=".18"
+                font-size="58"
+                font-weight="900"
+                letter-spacing="-5"
+        >PASSDB</text>
+
+        <text
+                x="57"
+                y="151"
+                fill="url(#purple)"
+                font-size="58"
+                font-weight="900"
+                letter-spacing="-5"
+        >PASSDB</text>
+
+        <!-- Cursor -->
+        <rect
+                x="337"
+                y="111"
+                width="9"
+                height="43"
+                rx="2"
+                fill="#7B61FF"
+                opacity=".9"
+                filter="url(#softGlow)"
+        />
+
+        <!-- Tagline -->
+        <text
+                x="62"
+                y="184"
+                fill="#E4E7EC"
+                font-size="15"
+                font-weight="700"
+                letter-spacing=".2"
+        >HIGH-PERFORMANCE COMBOLIST PARSER &amp; SEARCH ENGINE</text>
+
+        <text
+                x="62"
+                y="209"
+                fill="#7F8999"
+                font-size="12"
+        >Parse millions of records. Deduplicate at scale. Query fast.</text>
+
+        <!-- Data formats -->
+        <g font-size="11">
+            <rect x="62" y="228" width="118" height="27" rx="6" fill="#161C26" stroke="#303747"/>
+            <text x="121" y="246" text-anchor="middle" fill="#AFA6FF">EMAIL:PASSWORD</text>
+
+            <rect x="188" y="228" width="72" height="27" rx="6" fill="#161C26" stroke="#303747"/>
+            <text x="224" y="246" text-anchor="middle" fill="#AFA6FF">JSON</text>
+
+            <rect x="268" y="228" width="72" height="27" rx="6" fill="#161C26" stroke="#303747"/>
+            <text x="304" y="246" text-anchor="middle" fill="#AFA6FF">CSV</text>
+
+            <rect x="348" y="228" width="118" height="27" rx="6" fill="#161C26" stroke="#303747"/>
+            <text x="407" y="246" text-anchor="middle" fill="#AFA6FF">ANDROID://</text>
+        </g>
+
+        <!-- Technology row -->
+        <g font-size="11">
+            <text x="62" y="286" fill="#596474">RUST</text>
+            <circle cx="96" cy="282" r="2" fill="#7B61FF"/>
+
+            <text x="110" y="286" fill="#596474">RATATUI</text>
+            <circle cx="168" cy="282" r="2" fill="#7B61FF"/>
+
+            <text x="182" y="286" fill="#596474">DUCKDB</text>
+            <circle cx="238" cy="282" r="2" fill="#7B61FF"/>
+
+            <text x="252" y="286" fill="#596474">CLI</text>
+            <circle cx="277" cy="282" r="2" fill="#7B61FF"/>
+
+            <text x="291" y="286" fill="#596474">MD5 DEDUP</text>
+            <circle cx="367" cy="282" r="2" fill="#7B61FF"/>
+
+            <text x="381" y="286" fill="#596474">LINUX / MACOS</text>
+        </g>
+
+    </g>
+
+    <!-- Right database visualization -->
+    <g transform="translate(575 88)">
+
+        <!-- Decorative glow -->
+        <circle cx="150" cy="105" r="105" fill="#7B61FF" opacity=".035"/>
+        <circle cx="150" cy="105" r="78" fill="#7B61FF" opacity=".025"/>
+
+        <!-- Database cylinder -->
+        <g filter="url(#shadow)">
+
+            <ellipse
+                    cx="150"
+                    cy="62"
+                    rx="82"
+                    ry="25"
+                    fill="#171D29"
+                    stroke="#7B61FF"
+                    stroke-width="2"
+            />
+
+            <path
+                    d="M68 62V157C68 171 105 182 150 182C195 182 232 171 232 157V62"
+                    fill="#111722"
+                    stroke="#7B61FF"
+                    stroke-width="2"
+            />
+
+
+            <ellipse
+                    cx="150"
+                    cy="109"
+                    rx="82"
+                    ry="25"
+                    fill="none"
+                    stroke="#30384A"
+                    stroke-width="1.5"
+            />
+
+            <ellipse
+                    cx="150"
+                    cy="62"
+                    rx="82"
+                    ry="25"
+                    fill="#111722"
+                    stroke="#7B61FF"
+                    stroke-opacity=".45"
+            />
+
+            <!-- Data rows -->
+            <g font-family="monospace" font-size="9">
+                <text x="100" y="66" fill="#7B61FF">●</text>
+                <text x="112" y="66" fill="#596474">records</text>
+                <text x="175" y="66" fill="#AFA6FF">∞</text>
+
+                <text x="100" y="111" fill="#7B61FF">▸</text>
+                <text x="112" y="111" fill="#596474">query</text>
+                <text x="168" y="111" fill="#B9C0CC">LIKE</text>
+
+                <text x="100" y="159" fill="#7B61FF">✓</text>
+                <text x="112" y="159" fill="#596474">dedupe</text>
+                <text x="169" y="159" fill="#AFA6FF">MD5</text>
+            </g>
+        </g>
+
+        <!-- Search connection lines -->
+        <path
+                d="M235 62H275M235 109H295M235 157H275"
+                stroke="#7B61FF"
+                stroke-opacity=".3"
+                stroke-width="1"
+        />
+
+        <circle cx="277" cy="62" r="3" fill="#7B61FF"/>
+        <circle cx="297" cy="109" r="3" fill="#9B8CFF"/>
+        <circle cx="277" cy="157" r="3" fill="#7B61FF"/>
+
+        <!-- Metrics -->
+        <g font-family="monospace">
+            <text x="300" y="66" fill="#596474" font-size="9">STORAGE</text>
+            <text x="300" y="80" fill="#B9C0CC" font-size="11">DUCKDB</text>
+
+            <text x="300" y="113" fill="#596474" font-size="9">INTERFACE</text>
+            <text x="300" y="127" fill="#B9C0CC" font-size="11">TUI + CLI</text>
+
+            <text x="300" y="160" fill="#596474" font-size="9">PIPELINE</text>
+            <text x="300" y="174" fill="#B9C0CC" font-size="11">PARSE → SORT → SEARCH</text>
+        </g>
+    </g>
+
+    <!-- Bottom status bar -->
+    <line
+            x1="62"
+            y1="307"
+            x2="1038"
+            y2="307"
+            stroke="#2A2F3A"
+    />
+
+    <g font-family="monospace" font-size="10">
+        <circle cx="67" cy="321" r="3" fill="#28C840"/>
+        <text x="77" y="325" fill="#596474">READY</text>
+
+        <text x="155" y="325" fill="#596474">•</text>
+        <text x="168" y="325" fill="#596474">SECURITY RESEARCH</text>
+
+        <text x="315" y="325" fill="#596474">•</text>
+        <text x="328" y="325" fill="#596474">PENTESTING</text>
+
+        <text x="433" y="325" fill="#596474">•</text>
+        <text x="446" y="325" fill="#596474">OSINT</text>
+
+        <text x="505" y="325" fill="#596474">•</text>
+        <text x="518" y="325" fill="#596474">BUG BOUNTY</text>
+
+        <text
+                x="1038"
+                y="325"
+                fill="#7B61FF"
+                text-anchor="end"
+        >v1.0 // RUST</text>
+    </g>
+
+    <!-- Outer accent -->
+    <path
+            d="M36 76H34V54Q34 31 57 31H80"
+            fill="none"
+            stroke="#7B61FF"
+            stroke-width="2"
+            stroke-linecap="round"
+            opacity=".8"
+    />
+
+    <path
+            d="M1064 285V306Q1064 329 1041 329H1018"
+            fill="none"
+            stroke="#7B61FF"
+            stroke-width="2"
+            stroke-linecap="round"
+            opacity=".45"
+    />
+</svg>
